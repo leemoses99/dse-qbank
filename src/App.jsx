@@ -31,19 +31,19 @@ import {
   Key,
   FileText,
   CheckCircle2,
+  CheckCircle,
+  XCircle,
   Eye,
   EyeOff,
   LogOut,
-  User,
   Pencil,
   RefreshCw,
   Wand2,
   AlertCircle,
-  Star,
   Info,
   Globe2,
   Sparkles,
-  ChevronRight
+  Clock
 } from 'lucide-react';
 
 // --- HKDSE SYLLABUS DATA STRUCTURE (Alphabetical Order) ---
@@ -413,7 +413,7 @@ function AuthView({ onLoginSuccess }) {
                <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
                  <li><strong>Snap & Store:</strong> Take photos of DSE past papers (MC or LQ).</li>
                  <li><strong>AI Separation:</strong> Automatically extracts questions, options (A/B/C/D), and marks the correct topic.</li>
-                 <li><strong>Library & Star:</strong> Filter by subject/topic or pin important questions to your Starred list.</li>
+                 <li><strong>Library & Status:</strong> Label your questions with a <span className="text-emerald-400 font-bold">Tick</span> (Mastered) or <span className="text-rose-400 font-bold">Cross</span> (Needs Review) to track your revision progress easily!</li>
                </ul>
              </div>
 
@@ -458,7 +458,7 @@ export default function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
-  const [view, setView] = useState('library'); // 'library' | 'starred' | 'add'
+  const [view, setView] = useState('library'); // 'library' | 'review' | 'mastered' | 'add'
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [userApiKey, setUserApiKey] = useState('');
@@ -582,18 +582,27 @@ export default function App() {
               <span className="hidden sm:inline">Library</span>
             </button>
             <button
-              onClick={() => setView('starred')}
+              onClick={() => setView('review')}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'starred' ? 'bg-amber-500 text-white shadow-md shadow-amber-200' : 'bg-slate-100 text-slate-600 hover:bg-amber-100 hover:text-amber-700'
+                view === 'review' ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-700'
               }`}
             >
-              <Star className="w-4 h-4" />
-              <span className="hidden sm:inline">Starred</span>
+              <XCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Review</span>
+            </button>
+            <button
+              onClick={() => setView('mastered')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                view === 'mastered' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Mastered</span>
             </button>
             <button
               onClick={() => { setView('add'); setEditingQuestion(null); }}
               className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'add' ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200' : 'bg-slate-900 text-white hover:bg-slate-800 shadow-sm'
+                view === 'add' ? 'bg-slate-900 text-white shadow-md shadow-slate-400' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-sm'
               }`}
             >
               <Plus className="w-4 h-4" />
@@ -614,11 +623,11 @@ export default function App() {
       </header>
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 py-8">
-        {view === 'library' || view === 'starred' ? (
+        {view === 'library' || view === 'review' || view === 'mastered' ? (
           <LibraryView 
-            questions={view === 'starred' ? questions.filter(q => q.isStarred) : questions} 
+            questions={view === 'review' ? questions.filter(q => q.status === 'review') : view === 'mastered' ? questions.filter(q => q.status === 'mastered') : questions} 
             user={activeUser} 
-            isStarredView={view === 'starred'}
+            currentView={view}
             onEdit={(q) => {
               setEditingQuestion(q);
               setView('add');
@@ -640,7 +649,7 @@ export default function App() {
 }
 
 // --- LIBRARY VIEW COMPONENT ---
-function LibraryView({ questions, user, isStarredView, onEdit }) {
+function LibraryView({ questions, user, currentView, onEdit }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -650,13 +659,13 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const toggleStar = async (id, currentStatus) => {
+  const toggleStatus = async (id, newStatus) => {
     if (!user || !db) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', id);
-      await updateDoc(docRef, { isStarred: !currentStatus });
+      await updateDoc(docRef, { status: newStatus });
     } catch (err) {
-      console.error("Star toggle error:", err);
+      console.error("Status toggle error:", err);
     }
   };
 
@@ -692,14 +701,26 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
 
   return (
     <div className="space-y-6">
-      {isStarredView && (
-        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 text-amber-900 p-5 rounded-2xl shadow-sm flex items-center gap-4">
-          <div className="bg-amber-100 p-2.5 rounded-xl">
-            <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+      {currentView === 'review' && (
+        <div className="bg-gradient-to-r from-rose-50 to-red-50 border border-rose-200 text-rose-900 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+          <div className="bg-rose-100 p-2.5 rounded-xl">
+            <XCircle className="w-6 h-6 text-rose-500" />
           </div>
           <div>
-            <h2 className="font-extrabold text-base">Starred Questions</h2>
-            <p className="text-sm font-medium text-amber-700/80">Your highly important revision items are pinned here.</p>
+            <h2 className="font-extrabold text-base">Needs Review</h2>
+            <p className="text-sm font-medium text-rose-700/80">Questions you marked with a Cross to revisit later.</p>
+          </div>
+        </div>
+      )}
+
+      {currentView === 'mastered' && (
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 text-emerald-900 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+          <div className="bg-emerald-100 p-2.5 rounded-xl">
+            <CheckCircle className="w-6 h-6 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="font-extrabold text-base">Mastered Questions</h2>
+            <p className="text-sm font-medium text-emerald-700/80">Questions you marked with a Tick that you have fully understood.</p>
           </div>
         </div>
       )}
@@ -761,10 +782,10 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
              <BookOpen className="w-8 h-8 text-slate-300" />
           </div>
           <h3 className="font-extrabold text-slate-700 text-lg mb-2">
-            {isStarredView ? 'No starred questions found' : 'No questions match your filter'}
+            {currentView === 'review' ? 'No review questions found' : currentView === 'mastered' ? 'No mastered questions found' : 'No questions match your filter'}
           </h3>
           <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">
-            {isStarredView ? 'Star questions in your library to pin them here for quick access.' : 'Try resetting your filters or add a new question to your bank.'}
+            {currentView === 'review' || currentView === 'mastered' ? 'Use the Tick and Cross buttons on your questions to organize them.' : 'Try resetting your filters or add a new question to your bank.'}
           </p>
         </div>
       ) : (
@@ -789,25 +810,43 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
 
                 <div className="flex items-center gap-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1">
                   <button
-                    onClick={() => toggleStar(q.id, q.isStarred)}
-                    className="p-1.5 rounded-lg transition-colors hover:bg-slate-50"
+                    onClick={() => toggleStatus(q.id, q.status === 'mastered' ? 'unmarked' : 'mastered')}
+                    className={`p-1.5 rounded-lg transition-colors ${q.status === 'mastered' ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-50'}`}
+                    title="Mark as Mastered (Tick)"
                   >
-                    <Star className={`w-4 h-4 ${q.isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-300 hover:text-amber-300'}`} />
+                    <CheckCircle className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => toggleStatus(q.id, q.status === 'review' ? 'unmarked' : 'review')}
+                    className={`p-1.5 rounded-lg transition-colors ${q.status === 'review' ? 'text-rose-600 bg-rose-100' : 'text-slate-300 hover:text-rose-500 hover:bg-slate-50'}`}
+                    title="Needs Review (Cross)"
+                  >
+                    <XCircle className="w-4 h-4" />
                   </button>
                   <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
-                  <button onClick={() => onEdit(q)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-colors">
+                  <button onClick={() => onEdit(q)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-colors" title="Edit">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(q.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors">
+                  <button onClick={() => handleDelete(q.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {q.topic && (
-                <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-start gap-2">
-                  <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-0.5">Topic</span>
-                  <span className="leading-tight">{q.topic}</span>
+                <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-0.5">Topic</span>
+                    <span className="leading-tight">{q.topic}</span>
+                  </div>
+                  
+                  {/* LOCAL DATE AND TIME DISPLAY */}
+                  {q.createdAt && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mt-0.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                      <Clock className="w-3 h-3" />
+                      {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1075,11 +1114,12 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         options: questionType === 'MC' ? options : null,
         remarks: remarks.trim(),
         attachedImage: includeImage ? attachedImage : null,
-        isStarred: editData ? editData.isStarred || false : false 
+        status: editData ? editData.status || 'unmarked' : 'unmarked' 
       };
 
       if (editData && editData.id) {
         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', editData.id);
+        // Retain original createdAt timestamp when updating
         await updateDoc(docRef, { ...questionData, updatedAt: new Date().toISOString() });
       } else {
         const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
