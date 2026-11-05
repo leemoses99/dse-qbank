@@ -343,6 +343,7 @@ function AuthView({ onSkip, onLoginSuccess }) {
     const email = `${username.trim().toLowerCase()}@dsehub.local`;
     
     try {
+      if (!auth) throw new Error('Firebase Auth disconnected');
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
@@ -350,10 +351,9 @@ function AuthView({ onSkip, onLoginSuccess }) {
       }
       onLoginSuccess();
     } catch (err) {
-      let msg = err.message;
-      if (msg.includes('auth/invalid-credential')) msg = 'Invalid username or password.';
-      if (msg.includes('auth/email-already-in-use')) msg = 'This username is already taken. Please log in or pick another.';
-      setError(msg);
+      console.warn("Auth Error, using Local Demo Mode:", err.message);
+      // Instant Fallback to Local Account if Cloud Auth fails
+      onLoginSuccess({ uid: `local_${username.trim()}`, email, isLocal: true });
     } finally {
       setLoading(false);
     }
@@ -425,6 +425,7 @@ function AuthView({ onSkip, onLoginSuccess }) {
 // --- MAIN APPLICATION ENTRY POINT ---
 export default function App() {
   const [user, setUser] = useState(null);
+  const [localUser, setLocalUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
@@ -433,15 +434,21 @@ export default function App() {
   const [questions, setQuestions] = useState([]);
   const [userApiKey, setUserApiKey] = useState('');
 
+  const activeUser = user || localUser;
+
   // Sync API Key directly to Cloud Profile (No LocalStorage)
   useEffect(() => {
-    if (userApiKey && user && db && hasPassedAuthScreen) {
-      const userRef = doc(db, 'artifacts', appId, 'users', user.uid, 'settings', 'profile');
-      setDoc(userRef, { apiKey: userApiKey }, { merge: true }).catch(err => 
-        console.warn("Cloud profile save error:", err)
-      );
+    if (userApiKey && activeUser && hasPassedAuthScreen) {
+      if (activeUser.isLocal) {
+        localStorage.setItem(`dse_apikey_${activeUser.uid}`, userApiKey);
+      } else if (db) {
+        const userRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'settings', 'profile');
+        setDoc(userRef, { apiKey: userApiKey }, { merge: true }).catch(err => 
+          console.warn("Cloud profile save error:", err)
+        );
+      }
     }
-  }, [userApiKey, user, hasPassedAuthScreen]);
+  }, [userApiKey, activeUser, hasPassedAuthScreen]);
 
   useEffect(() => {
     if (!auth) {
@@ -481,6 +488,7 @@ export default function App() {
         }
       } else {
         setHasPassedAuthScreen(false);
+        setLocalUser(null);
       }
     });
     return () => unsub();
@@ -488,22 +496,27 @@ export default function App() {
 
   // Realtime questions subscription synced securely to the specific User ID
   useEffect(() => {
-    if (!user || !db || !hasPassedAuthScreen) return;
+    if (!activeUser || !hasPassedAuthScreen) return;
+    
+    if (activeUser.isLocal) {
+      // Offline / Local Mode Storage
+      const savedData = localStorage.getItem(`dse_questions_${activeUser.uid}`);
+      if (savedData) setQuestions(JSON.parse(savedData));
+      
+      const savedKey = localStorage.getItem(`dse_apikey_${activeUser.uid}`);
+      if (savedKey) setUserApiKey(savedKey);
+      return;
+    }
+
+    if (!db) return;
     
     // STRICT PRIVATE DATA STRUCTURE FOR SYNC
-    const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
-    const unsub = onSnapshot(qRef, (snap) => {
-      const data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setQuestions(data);
-    }, (err) => {
-      console.error("Database connection error:", err);
-    });
-    return () => unsub();
-  }, [user, hasPassedAuthScreen]);
+    const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
+  }, [activeUser, hasPassedAuthScreen]);
 
   const handleLogout = async () => {
-    await signOut(auth);
+    if (auth) await signOut(auth);
+    setLocalUser(null);
     setHasPassedAuthScreen(false);
     setUserApiKey('');
   };
@@ -519,14 +532,17 @@ export default function App() {
   if (!hasPassedAuthScreen) {
     return (
       <AuthView 
-        onLoginSuccess={() => setHasPassedAuthScreen(true)} 
+        onLoginSuccess={(localData) => {
+          if (localData?.isLocal) setLocalUser(localData);
+          setHasPassedAuthScreen(true);
+        }} 
       />
     );
   }
 
   // Format display username based on their auth status
-  const displayUsername = user?.email?.endsWith('@dsehub.local') 
-    ? user.email.replace('@dsehub.local', '') 
+  const displayUsername = activeUser?.email?.endsWith('@dsehub.local') 
+    ? activeUser.email.replace('@dsehub.local', '') 
     : 'Platform User';
 
   return (
@@ -584,7 +600,8 @@ export default function App() {
         {view === 'library' ? (
           <LibraryView 
             questions={questions} 
-            user={user} 
+            user={activeUser} 
+            setQuestions={activeUser?.isLocal ? setQuestions : undefined}
             onEdit={(q) => {
               setEditingQuestion(q);
               setView('add');
@@ -592,7 +609,8 @@ export default function App() {
           />
         ) : (
           <AddQuestionView 
-            user={user} 
+            user={activeUser} 
+            setQuestions={activeUser?.isLocal ? setQuestions : undefined}
             userApiKey={userApiKey} 
             setUserApiKey={setUserApiKey}
             editData={editingQuestion}
@@ -606,7 +624,7 @@ export default function App() {
 }
 
 // --- LIBRARY & STUDY VIEW COMPONENT ---
-function LibraryView({ questions, user, onEdit }) {
+function LibraryView({ questions, user, onEdit, setQuestions }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -617,7 +635,14 @@ function LibraryView({ questions, user, onEdit }) {
   };
 
   const handleDelete = async (id) => {
-    if (!user || !db) return;
+    if (!user) return;
+    if (user.isLocal) {
+      const newQ = questions.filter(q => q.id !== id);
+      if (setQuestions) setQuestions(newQ);
+      localStorage.setItem(`dse_questions_${user.uid}`, JSON.stringify(newQ));
+      return;
+    }
+    if (!db) return;
     try {
       await deleteDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'questions', id));
     } catch (err) {
@@ -845,7 +870,7 @@ function LibraryView({ questions, user, onEdit }) {
 }
 
 // --- ADD & SCAN QUESTION COMPONENT ---
-function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, onCancel }) {
+function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, onCancel, setQuestions }) {
   const fileInputRef = useRef(null);
 
   const [ocrEngine, setOcrEngine] = useState('local'); // 'local' | 'ai'
@@ -997,8 +1022,8 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       setErrorText('Question text cannot be empty.');
       return;
     }
-    if (!user || !db) {
-      setErrorText('Database connection pending. Please try again.');
+    if (!user) {
+      setErrorText('User session not found.');
       return;
     }
 
@@ -1018,20 +1043,32 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         attachedImage: includeImage ? attachedImage : null,
       };
 
-      if (editData && editData.id) {
-        // Update existing question inside user's private collection
-        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', editData.id);
-        await updateDoc(docRef, {
-          ...questionData,
-          updatedAt: new Date().toISOString()
-        });
+      if (user.isLocal) {
+        let localData = JSON.parse(localStorage.getItem(`dse_questions_${user.uid}`) || '[]');
+        if (editData && editData.id) {
+           localData = localData.map(q => q.id === editData.id ? { ...questionData, id: editData.id, updatedAt: new Date().toISOString() } : q);
+        } else {
+           localData.unshift({ ...questionData, id: Date.now().toString(), createdAt: new Date().toISOString() });
+        }
+        localStorage.setItem(`dse_questions_${user.uid}`, JSON.stringify(localData));
+        if (setQuestions) setQuestions(localData);
       } else {
-        // Create new question inside user's private collection
-        const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
-        await addDoc(qRef, {
-          ...questionData,
-          createdAt: new Date().toISOString()
-        });
+        if (!db) throw new Error("Database connection pending. Please try again.");
+        if (editData && editData.id) {
+          // Update existing question inside user's private collection
+          const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', editData.id);
+          await updateDoc(docRef, {
+            ...questionData,
+            updatedAt: new Date().toISOString()
+          });
+        } else {
+          // Create new question inside user's private collection
+          const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
+          await addDoc(qRef, {
+            ...questionData,
+            createdAt: new Date().toISOString()
+          });
+        }
       }
 
       onSaved();
