@@ -1,10 +1,3 @@
-Here is the updated, fully combined, and working single-file code for `src/App.jsx`.
-
-This update resolves option parsing by instructing **`gemini-3.1-flash-lite`** to strictly format MC options into a clean JSON structure, fallback-parsing text if necessary, and using clean JSX elements (replacing standard syntax escape errors like `$\rightarrow$` with `->`) to ensure Vite and esbuild compile without any errors.
-
-Copy and paste this complete code into your `src/App.jsx` file:
-
-```jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { initializeApp } from 'firebase/app';
 import {
@@ -43,10 +36,11 @@ import {
   LogOut,
   User,
   Pencil,
-  RefreshCw
+  RefreshCw,
+  Wand2
 } from 'lucide-react';
 
-// --- STRICT HKDSE SYLLABUS DATA STRUCTURE ---
+// --- HKDSE SYLLABUS STRUCTURE ---
 const HKDSE_SYLLABUS = {
   "physics": {
     name: "Physics",
@@ -191,7 +185,36 @@ try {
   console.warn("Firebase Setup Warning:", e);
 }
 
-// Compress image to save Firestore payload
+// Helper: Smart Regex Option Extractor
+const extractOptionsFromText = (rawText) => {
+  if (!rawText) return { cleanQuestion: '', options: null };
+
+  const text = rawText.trim();
+  // Regex pattern matching A., B., C., D. or A), B), C), D) or (A), (B), (C), (D)
+  const optionRegex = /(?:^|\n|\s)(?:\(?([A-D])[\.\)]\s*)([\s\S]*?)(?=(?:^|\n|\s)\(?[A-D][\.\)]\s*|$)/gi;
+  const matches = [...text.matchAll(optionRegex)];
+
+  if (matches.length >= 2) {
+    const extractedOptions = { A: '', B: '', C: '', D: '' };
+    matches.forEach(m => {
+      const letter = m[1].toUpperCase();
+      const content = m[2].trim();
+      if (['A', 'B', 'C', 'D'].includes(letter)) {
+        extractedOptions[letter] = content;
+      }
+    });
+
+    // Extract everything before the first option letter as clean question text
+    const firstOptIdx = text.search(/(?:^|\n|\s)\(?[A-D][\.\)]\s*/i);
+    const cleanQuestion = firstOptIdx !== -1 ? text.substring(0, firstOptIdx).trim() : text;
+
+    return { cleanQuestion, options: extractedOptions };
+  }
+
+  return { cleanQuestion: text, options: null };
+};
+
+// Compress image for Firestore
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -217,7 +240,7 @@ const compressImage = (file) => {
   });
 };
 
-// Client-Side OCR helper function (Tesseract.js)
+// Local Tesseract OCR
 const runLocalOCR = async (imageFile) => {
   if (!window.Tesseract) {
     await new Promise((resolve, reject) => {
@@ -234,43 +257,33 @@ const runLocalOCR = async (imageFile) => {
   return result?.data?.text || '';
 };
 
-// Gemini 3.1 Flash Lite OCR with JSON Schema output and Fallback parsing
-// Gemini 3.1 Flash Lite OCR with JSON Schema output and robust parsing
+// Gemini 3.1 Flash Lite OCR Engine
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
   const effectiveKey = apiKey || '';
   if (!effectiveKey) {
     throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
   }
 
-  // Explicitly using gemini-3.1-flash-lite
   const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
 
-  const prompt = questionType === 'MC' 
-    ? `Analyze this Multiple Choice (MC) question. 
-Raw OCR text context: "${preExtractedText}"
+  const prompt = `Analyze this HKDSE exam question image and raw OCR context below:
+"${preExtractedText}"
 
-Extract the content strictly into this JSON format:
-1. "question": The main question text ONLY (do not include the A, B, C, D choices here).
-2. "options": An object containing the choices mapped to keys A, B, C, and D.
-3. "answer": The correct answer (A, B, C, or D) or any visible solution steps.
-Return ONLY valid JSON.`
-    : `Analyze this Long Question (LQ).
-Raw OCR text context: "${preExtractedText}"
-
-Extract the content strictly into this JSON format:
-1. "question": The full question text.
-2. "answer": Step-by-step solutions or teacher markings if visible.
-Return ONLY valid JSON.`;
+TASKS:
+1. Detect Subject (Must be one of: "Physics", "Chemistry", "Economics", "Math Compulsory", "M2").
+2. For Question Body: Extract ONLY the main printed question text. EXCLUDE options A, B, C, D from the question string.
+3. For Options: Put option choice texts directly into A, B, C, and D keys.
+4. For Answer: Extract the correct option letter (A, B, C, or D) or solution explanation.`;
 
   const parts = [{ text: prompt }];
   if (base64Image) {
     parts.push({ inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Image } });
   }
 
-  // Simplified schema without strict 'required' arrays that crash the extraction if an option is blurry
-  const responseSchema = questionType === 'MC' ? {
+  const responseSchema = {
     type: "OBJECT",
     properties: {
+      subject: { type: "STRING" },
       question: { type: "STRING" },
       options: {
         type: "OBJECT",
@@ -281,12 +294,6 @@ Return ONLY valid JSON.`;
           D: { type: "STRING" }
         }
       },
-      answer: { type: "STRING" }
-    }
-  } : {
-    type: "OBJECT",
-    properties: {
-      question: { type: "STRING" },
       answer: { type: "STRING" }
     }
   };
@@ -319,21 +326,60 @@ Return ONLY valid JSON.`;
   }
 
   try {
-    // Strip markdown formatting if the model unexpectedly wraps the JSON response
     const cleanJson = rawText.replace(/```json\n?|\n?```/g, '').trim();
-    const parsedData = JSON.parse(cleanJson);
-    
-    // Ensure nested options exist for MC to prevent UI crashes
-    if (questionType === 'MC' && !parsedData.options) {
-      parsedData.options = { A: '', B: '', C: '', D: '' };
-    }
-    
-    return parsedData;
+    return JSON.parse(cleanJson);
   } catch (err) {
-    console.error("JSON Parsing Error on string:", rawText);
-    throw new Error("Failed to parse AI output into structured data.");
+    throw new Error("Failed to parse AI output into structured format.");
   }
 };
+
+// --- AUTHENTICATION COMPONENT ---
+function AuthView({ onLoginSuccess }) {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleAuth = async (isLogin) => {
+    if (!username.trim() || !password.trim()) {
+      setError('Username and password are required.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
+      return;
+    }
+    
+    setLoading(true);
+    setError('');
+    const email = `${username.trim().toLowerCase()}@dsehub.local`;
+    
+    try {
+      if (auth) {
+        if (isLogin) {
+          await signInWithEmailAndPassword(auth, email, password);
+        } else {
+          await createUserWithEmailAndPassword(auth, email, password);
+        }
+        onLoginSuccess(null);
+      } else {
+        const fallbackUid = 'usr_' + btoa(username.trim().toLowerCase()).replace(/=/g, '');
+        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim() });
+      }
+    } catch (err) {
+      let msg = err.message || '';
+      if (msg.includes('auth/invalid-credential') || msg.includes('auth/user-not-found') || msg.includes('auth/wrong-password')) {
+        setError('Invalid username or password.');
+      } else if (msg.includes('auth/email-already-in-use')) {
+        setError('This username is already registered! Click "Log In" instead.');
+      } else {
+        const fallbackUid = 'usr_' + btoa(username.trim().toLowerCase()).replace(/=/g, '');
+        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim() });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
@@ -398,7 +444,7 @@ Return ONLY valid JSON.`;
   );
 }
 
-// --- MAIN ENTRY APP ---
+// --- MAIN APP COMPONENT ---
 export default function App() {
   const [user, setUser] = useState(null);
   const [localAccount, setLocalAccount] = useState(null);
@@ -412,7 +458,7 @@ export default function App() {
 
   const activeUser = user || localAccount;
 
-  // Sync API Key to User Profile
+  // Save API key to user profile in Firestore
   useEffect(() => {
     if (userApiKey && activeUser && db && hasPassedAuthScreen) {
       const userRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'settings', 'profile');
@@ -427,16 +473,14 @@ export default function App() {
       setLoadingAuth(false);
       return;
     }
-    const initAnonymousAuth = async () => {
+    const initAnon = async () => {
       try {
-        if (!auth.currentUser) {
-          await signInAnonymously(auth);
-        }
+        if (!auth.currentUser) await signInAnonymously(auth);
       } catch (err) {
-        console.warn("Anonymous session sign-in notice:", err);
+        console.warn("Anon Auth Notice:", err);
       }
     };
-    initAnonymousAuth();
+    initAnon();
 
     const unsub = onAuthStateChanged(auth, async (usr) => {
       setUser(usr);
@@ -452,7 +496,7 @@ export default function App() {
               setUserApiKey(snap.data().apiKey);
             }
           } catch (e) {
-            console.warn("Could not fetch user settings:", e);
+            console.warn("Profile fetch error:", e);
           }
         }
       }
@@ -460,7 +504,7 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // Database Subscription
+  // Realtime Database Listener
   useEffect(() => {
     if (!activeUser || !db || !hasPassedAuthScreen) return;
     const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
@@ -579,7 +623,7 @@ export default function App() {
   );
 }
 
-// --- LIBRARY VIEW ---
+// --- LIBRARY VIEW COMPONENT ---
 function LibraryView({ questions, user, onEdit }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
@@ -790,7 +834,7 @@ function LibraryView({ questions, user, onEdit }) {
   );
 }
 
-// --- ADD QUESTION VIEW ---
+// --- ADD & EDIT QUESTION VIEW COMPONENT ---
 function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, onCancel }) {
   const fileInputRef = useRef(null);
 
@@ -840,6 +884,16 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   }, [editData]);
 
+  // Quick Action: Smart-split A/B/C/D from question body
+  const handleAutoSplitOptions = () => {
+    if (!questionText) return;
+    const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(questionText);
+    if (parsedOpts) {
+      setQuestionText(cleanQuestion);
+      setOptions(prev => ({ ...prev, ...parsedOpts }));
+    }
+  };
+
   const handleFilePicked = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -874,7 +928,12 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     try {
       if (ocrEngine === 'local') {
         const localExtractedText = await runLocalOCR(attachedImage || imageFile);
-        setQuestionText(prev => (prev ? prev + '\n' : '') + (localExtractedText || ''));
+        
+        // Auto-split options using regex
+        const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(localExtractedText);
+        setQuestionText(cleanQuestion);
+        if (parsedOpts) setOptions(parsedOpts);
+
         setStatus('idle');
       } else {
         const [localExtractedText, imagePayload] = await Promise.all([
@@ -903,8 +962,23 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         try {
           const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, userApiKey, localExtractedText);
           
-          if (aiData.question) setQuestionText(typeof aiData.question === 'object' ? JSON.stringify(aiData.question) : String(aiData.question));
-          if (aiData.answer) setAnswerText(typeof aiData.answer === 'object' ? JSON.stringify(aiData.answer) : String(aiData.answer));
+          // 1. Auto-detect & switch Subject
+          if (aiData.subject) {
+            const detectedSub = String(aiData.subject).toLowerCase();
+            const matchingKey = Object.keys(HKDSE_SYLLABUS).find(k => 
+              k.toLowerCase() === detectedSub || HKDSE_SYLLABUS[k].name.toLowerCase() === detectedSub
+            );
+            if (matchingKey) {
+              setSubjectKey(matchingKey);
+              setTopic(HKDSE_SYLLABUS[matchingKey].topics[0]);
+            }
+          }
+
+          // 2. Set Question Body & Answer
+          let rawQ = aiData.question ? String(aiData.question) : localExtractedText;
+          if (aiData.answer) setAnswerText(String(aiData.answer));
+
+          // 3. Set Options (or fallback regex split)
           if (aiData.options && typeof aiData.options === 'object') {
             setOptions({
               A: String(aiData.options.A || ''),
@@ -912,12 +986,21 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               C: String(aiData.options.C || ''),
               D: String(aiData.options.D || '')
             });
+            setQuestionText(rawQ);
+          } else {
+            const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(rawQ);
+            setQuestionText(cleanQuestion);
+            if (parsedOpts) setOptions(parsedOpts);
           }
+
           setStatus('idle');
         } catch (aiErr) {
-          console.warn("Gemini 3.1 Flash Lite OCR error, using raw local text fallback:", aiErr);
-          setQuestionText(prev => (prev ? prev + '\n' : '') + (localExtractedText || ''));
-          setErrorText(`AI OCR Error: ${aiErr.message}. Fallback text generated.`);
+          console.warn("Gemini Flash Lite AI notice, using Regex Auto-Split fallback:", aiErr);
+          const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(localExtractedText);
+          setQuestionText(cleanQuestion);
+          if (parsedOpts) setOptions(parsedOpts);
+
+          setErrorText(`AI OCR Notice: ${aiErr.message}. Local OCR + Auto-Split executed.`);
           setStatus('idle');
         }
       }
@@ -1092,7 +1175,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 onClick={handleRunOCR}
                 className="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
               >
-                <RefreshCw className="w-4 h-4" /> Extract Text with Gemini 3.1 Flash Lite
+                <RefreshCw className="w-4 h-4" /> Extract Text from Image (OCR)
               </button>
           )}
 
@@ -1108,7 +1191,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         {status === 'scanning' ? (
           <div className="flex flex-col items-center justify-center p-6 space-y-2">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <p className="text-xs text-slate-600 font-medium">Categorizing Question Details...</p>
+            <p className="text-xs text-slate-600 font-medium">Categorizing Question & Options...</p>
           </div>
         ) : (
           <div className="space-y-4 pt-2 border-t border-slate-100">
@@ -1118,7 +1201,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 <select
                   value={subjectKey}
                   onChange={handleSubjectChange}
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
                 >
                   {Object.keys(HKDSE_SYLLABUS).map(k => (
                     <option key={k} value={k}>{HKDSE_SYLLABUS[k].name}</option>
@@ -1152,7 +1235,19 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Question Body</label>
+              <div className="flex justify-between items-center mb-1">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Question Body</label>
+                {questionType === 'MC' && questionText && (
+                  <button
+                    type="button"
+                    onClick={handleAutoSplitOptions}
+                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
+                    title="Extract A, B, C, D choices from the text automatically"
+                  >
+                    <Wand2 className="w-3.5 h-3.5" /> Auto-Split A/B/C/D Options
+                  </button>
+                )}
+              </div>
               <textarea
                 rows={4}
                 value={questionText}
@@ -1205,5 +1300,3 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     </div>
   );
 }
-
-```
