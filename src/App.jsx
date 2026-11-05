@@ -37,129 +37,90 @@ import {
   User,
   Pencil,
   RefreshCw,
-  Wand2
+  Wand2,
+  AlertCircle,
+  Star
 } from 'lucide-react';
 
-// --- HKDSE SYLLABUS DATA STRUCTURE ---
+// --- HKDSE SYLLABUS DATA STRUCTURE (Alphabetical Order) ---
 const HKDSE_SYLLABUS = {
-  "physics": {
-    name: "Physics",
+  "biology": {
+    name: "Biology",
     topics: [
-      "Topic 1 Temperature, Heat and Internal energy",
-      "Topic 2 Transfer Processes",
-      "Topic 3 Change of State",
-      "Topic 4 General Gas Law",
-      "Topic 5 Kinetic Theory",
-      "Topic 6 Position and Movement",
-      "Topic 7 Newton's Laws",
-      "Topic 8 Moment of Force",
-      "Topic 9 Work, Energy and Power",
-      "Topic 10 Momentum",
-      "Topic 11 Projectile Motion",
-      "Topic 12 Circular Motion",
-      "Topic 13 Gravitation",
-      "Topic 14 Wave Propagation",
-      "Topic 15 Wave Phenomena",
-      "Topic 16 Reflection and Refraction of Light",
-      "Topic 17 Lenses",
-      "Topic 18 Wave Nature of Light",
-      "Topic 19 Sound",
-      "Topic 20 Electrostatics",
-      "Topic 21 Electric Circuits",
-      "Topic 22 Domestic Electricity",
-      "Topic 23 Magnetic Field",
-      "Topic 24 Electromagnetic Induction",
-      "Topic 25 Alternating Current",
-      "Topic 26 Radiation and Radioactivity",
-      "Topic 27 Atomic Model",
-      "Topic 28 Nuclear Energy",
-      "Elective 1 Astronomy and Space Science",
-      "Elective 2 Atomic World",
-      "Elective 3 Energy and Use of Energy"
+      "Topic 1 Cell and membrane transport", "Topic 2 Enzymes", "Topic 3 Nutrition in humans", 
+      "Topic 4 Gas exchange in humans", "Topic 5 Transport in humans", "Topic 6 Nutrition and gas exchange in plants", 
+      "Topic 7 Transpiration, transport and support in plants", "Topic 8 Cell division and reproduction", 
+      "Topic 9 Growth and development", "Topic 10 Growth responses of plants", "Topic 11 Coordination in humans", 
+      "Topic 12 Movement in humans", "Topic 13 Homeostasis", "Topic 14 Biodiversity", "Topic 15 Ecosystems", 
+      "Topic 16 Photosynthesis", "Topic 17 Respiration", "Topic 18 Health and diseases", 
+      "Topic 19 Basic genetics, Molecular and applied genetics", "Topic 20 Evolution", 
+      "Elective 1 Human Physiology", "Elective 2 Applied Ecology", "Elective 3 Biotechnology"
     ]
   },
   "chemistry": {
     name: "Chemistry",
     topics: [
-      "Topic 1 Laboratory Safety and Precautions",
-      "Topic 2 Planet Earth",
-      "Topic 3 Microscopic World",
-      "Topic 4 Metals",
-      "Topic 5 Acid and Bases",
-      "Topic 6 Fossil fuels and Carbon Compounds",
-      "Topic 7 Microscopic World II",
-      "Topic 8 Redox Reactions, Chemical Cells and Electrolysis",
-      "Topic 9 Chemical Reactions and Energy",
-      "Topic 10 Rate of Reaction",
-      "Topic 11 Chemical Equilibrium",
-      "Topic 12 Chemistry of Carbon Compounds",
-      "Topic 13 Patterns in the Chemical World",
-      "E1 Industrial Chemistry",
-      "E2 Analytical Chemistry"
+      "Topic 1 Laboratory Safety and Precautions", "Topic 2 Planet Earth", "Topic 3 Microscopic World", 
+      "Topic 4 Metals", "Topic 5 Acid and Bases", "Topic 6 Fossil fuels and Carbon Compounds", 
+      "Topic 7 Microscopic World II", "Topic 8 Redox Reactions, Chemical Cells and Electrolysis", 
+      "Topic 9 Chemical Reactions and Energy", "Topic 10 Rate of Reaction", "Topic 11 Chemical Equilibrium", 
+      "Topic 12 Chemistry of Carbon Compounds", "Topic 13 Patterns in the Chemical World", 
+      "E1 Industrial Chemistry", "E2 Analytical Chemistry"
     ]
   },
   "economics": {
     name: "Economics",
     topics: [
-      "Topic 1 Basic Concept",
-      "Topic 2 Production",
-      "Topic 3 Input-Output Relationship",
-      "Topic 4 Ownership And Expansion Of Firms",
-      "Topic 5 Market Structure",
-      "Topic 6 Demand And Supply I",
-      "Topic 7 Demand And Supply II",
-      "Topic 8 Market Intervention",
-      "Topic 9 Roles Of Government",
-      "Topic 10 National Income",
-      "Topic 11 Macroeconomics Problems",
-      "Topic 12 The Budget And Fiscal Policy",
-      "Topic 13 Money And Banking I",
-      "Topic 14 Money And Banking II",
-      "Topic 15 Aggregate Demand And Aggregate Supply",
-      "Topic 16 International Trade",
-      "Topic 17 International Finance",
-      "Elective 2: Extension of Trade Theory And Economic Development"
+      "Topic 1 Basic Concept", "Topic 2 Production", "Topic 3 Input-Output Relationship", 
+      "Topic 4 Ownership And Expansion Of Firms", "Topic 5 Market Structure", "Topic 6 Demand And Supply I", 
+      "Topic 7 Demand And Supply II", "Topic 8 Market Intervention", "Topic 9 Roles Of Government", 
+      "Topic 10 National Income", "Topic 11 Macroeconomics Problems", "Topic 12 The Budget And Fiscal Policy", 
+      "Topic 13 Money And Banking I", "Topic 14 Money And Banking II", "Topic 15 Aggregate Demand And Aggregate Supply", 
+      "Topic 16 International Trade", "Topic 17 International Finance", "Elective 2: Extension of Trade Theory And Economic Development"
     ]
   },
-  "math compulsory": {
-    name: "Math Compulsory",
+  "m1": {
+    name: "M1",
     topics: [
-      "Topic 1 Estimation",
-      "Topic 2 Percentages",
-      "Topic 3 Indices and Logarithms",
-      "Topic 4 Polynomials",
-      "Topic 5 Formulas",
-      "Topic 6 Identities, Equations and the Number System",
-      "Topic 7 Functions and Graphs",
-      "Topic 8 Rate, Ratio and Variation",
-      "Topic 9 Arithmetic and Geometric Sequences",
-      "Topic 10 Inequalities and Linear Programming",
-      "Topic 11 Geometry of Rectilinear Figure",
-      "Topic 12 Geometry of Circles",
-      "Topic 13 Basic Trigonometry",
-      "Topic 14 Applications of Trigonometry",
-      "Topic 15 Mensuration",
-      "Topic 16 Coordinate Geometry",
-      "Topic 17 Counting Principles and Probability",
-      "Topic 18 Statistics"
+      "Topic 1 Binomial Expansion", "Topic 2 Exponential and Logarithmic Functions", 
+      "Topic 3 Derivatives and Differentiation of Functions", "Topic 4 Applications of Differentiation", 
+      "Topic 5 Indefinite Integrals", "Topic 6 Definite Integrals", "Topic 7 Further Probability", 
+      "Topic 8 Discrete Random Variables", "Topic 9 Binomial, Geometric and Poisson Distributions", 
+      "Topic 10 Normal Distribution", "Topic 11 Point and Interval Estimation"
     ]
   },
   "m2": {
     name: "M2",
     topics: [
-      "Topic 1 Mathematical Induction",
-      "Topic 2 Binomial Theorem",
-      "Topic 3 More about Trigonometric Functions",
-      "Topic 4 Limits and Derivatives",
-      "Topic 5 Differentiation",
-      "Topic 6 Applications of differentiation",
-      "Topic 7 Indefinite Integrals",
-      "Topic 8 Definite Integrals",
-      "Topic 9 Applications of Definite Integrals",
-      "Topic 10 Matrices and Determinants",
-      "Topic 11 System of Linear Equations",
-      "Topic 12 Vectors",
-      "Topic 13 Product of Vectors"
+      "Topic 1 Mathematical Induction", "Topic 2 Binomial Theorem", "Topic 3 More about Trigonometric Functions", 
+      "Topic 4 Limits and Derivatives", "Topic 5 Differentiation", "Topic 6 Applications of differentiation", 
+      "Topic 7 Indefinite Integrals", "Topic 8 Definite Integrals", "Topic 9 Applications of Definite Integrals", 
+      "Topic 10 Matrices and Determinants", "Topic 11 System of Linear Equations", "Topic 12 Vectors", "Topic 13 Product of Vectors"
+    ]
+  },
+  "math compulsory": {
+    name: "Math Compulsory",
+    topics: [
+      "Topic 1 Estimation", "Topic 2 Percentages", "Topic 3 Indices and Logarithms", "Topic 4 Polynomials", 
+      "Topic 5 Formulas", "Topic 6 Identities, Equations and the Number System", "Topic 7 Functions and Graphs", 
+      "Topic 8 Rate, Ratio and Variation", "Topic 9 Arithmetic and Geometric Sequences", "Topic 10 Inequalities and Linear Programming", 
+      "Topic 11 Geometry of Rectilinear Figure", "Topic 12 Geometry of Circles", "Topic 13 Basic Trigonometry", 
+      "Topic 14 Applications of Trigonometry", "Topic 15 Mensuration", "Topic 16 Coordinate Geometry", 
+      "Topic 17 Counting Principles and Probability", "Topic 18 Statistics"
+    ]
+  },
+  "physics": {
+    name: "Physics",
+    topics: [
+      "Topic 1 Temperature, Heat and Internal energy", "Topic 2 Transfer Processes", "Topic 3 Change of State", 
+      "Topic 4 General Gas Law", "Topic 5 Kinetic Theory", "Topic 6 Position and Movement", "Topic 7 Newton's Laws", 
+      "Topic 8 Moment of Force", "Topic 9 Work, Energy and Power", "Topic 10 Momentum", "Topic 11 Projectile Motion", 
+      "Topic 12 Circular Motion", "Topic 13 Gravitation", "Topic 14 Wave Propagation", "Topic 15 Wave Phenomena", 
+      "Topic 16 Reflection and Refraction of Light", "Topic 17 Lenses", "Topic 18 Wave Nature of Light", "Topic 19 Sound", 
+      "Topic 20 Electrostatics", "Topic 21 Electric Circuits", "Topic 22 Domestic Electricity", "Topic 23 Magnetic Field", 
+      "Topic 24 Electromagnetic Induction", "Topic 25 Alternating Current", "Topic 26 Radiation and Radioactivity", 
+      "Topic 27 Atomic Model", "Topic 28 Nuclear Energy", "Elective 1 Astronomy and Space Science", 
+      "Elective 2 Atomic World", "Elective 3 Energy and Use of Energy"
     ]
   }
 };
@@ -188,7 +149,6 @@ try {
 // Regex Option Extractor Fallback
 const extractOptionsFromText = (rawText) => {
   if (!rawText) return { cleanQuestion: '', options: null };
-
   const text = rawText.trim();
   const optionRegex = /(?:^|\n|\s)(?:\(?([A-D])[\.\)]\s*)([\s\S]*?)(?=(?:^|\n|\s)\(?[A-D][\.\)]\s*|$)/gi;
   const matches = [...text.matchAll(optionRegex)];
@@ -198,17 +158,12 @@ const extractOptionsFromText = (rawText) => {
     matches.forEach(m => {
       const letter = m[1].toUpperCase();
       const content = m[2].trim();
-      if (['A', 'B', 'C', 'D'].includes(letter)) {
-        extractedOptions[letter] = content;
-      }
+      if (['A', 'B', 'C', 'D'].includes(letter)) extractedOptions[letter] = content;
     });
-
     const firstOptIdx = text.search(/(?:^|\n|\s)\(?[A-D][\.\)]\s*/i);
     const cleanQuestion = firstOptIdx !== -1 ? text.substring(0, firstOptIdx).trim() : text;
-
     return { cleanQuestion, options: extractedOptions };
   }
-
   return { cleanQuestion: text, options: null };
 };
 
@@ -224,9 +179,7 @@ const compressImage = (file) => {
         const canvas = document.createElement('canvas');
         const MAX_WIDTH = 800;
         let scaleSize = 1;
-        if (img.width > MAX_WIDTH) {
-          scaleSize = MAX_WIDTH / img.width;
-        }
+        if (img.width > MAX_WIDTH) scaleSize = MAX_WIDTH / img.width;
         canvas.width = img.width * scaleSize;
         canvas.height = img.height * scaleSize;
         const ctx = canvas.getContext('2d');
@@ -255,14 +208,11 @@ const runLocalOCR = async (imageFile) => {
   return result?.data?.text || '';
 };
 
-// Gemini 3.1 Flash Lite OCR Recognition Function
+// Gemini 3.1 Flash Lite OCR
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
   const effectiveKey = apiKey || '';
-  if (!effectiveKey) {
-    throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
-  }
+  if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
 
-  // Enforce gemini-3.1-flash-lite endpoint
   const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
 
   const prompt = `You are an expert HKDSE exam question analyzer. 
@@ -270,7 +220,7 @@ Analyze the question image and pre-extracted OCR text below:
 ${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
 
 CRITICAL RULES:
-1. "subject": Auto-detect subject ("Physics", "Chemistry", "Economics", "Math Compulsory", or "M2").
+1. "subject": Auto-detect subject ("Biology", "Chemistry", "Economics", "M1", "M2", "Math Compulsory", or "Physics").
 2. "question": Extract ONLY the main question body text. DO NOT include choice options A, B, C, D in the question string.
 3. "options": Map the exact text for choices A, B, C, and D into their respective keys.
 4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.`;
@@ -287,12 +237,7 @@ CRITICAL RULES:
       question: { type: "STRING" },
       options: {
         type: "OBJECT",
-        properties: {
-          A: { type: "STRING" },
-          B: { type: "STRING" },
-          C: { type: "STRING" },
-          D: { type: "STRING" }
-        }
+        properties: { A: { type: "STRING" }, B: { type: "STRING" }, C: { type: "STRING" }, D: { type: "STRING" } }
       },
       answer: { type: "STRING" }
     }
@@ -300,11 +245,7 @@ CRITICAL RULES:
 
   const requestBody = JSON.stringify({
     contents: [{ role: 'user', parts: parts }],
-    generationConfig: { 
-      responseMimeType: 'application/json',
-      responseSchema: responseSchema,
-      temperature: 0.1
-    }
+    generationConfig: { responseMimeType: 'application/json', responseSchema: responseSchema, temperature: 0.1 }
   });
 
   const response = await fetch(primaryEndpoint, {
@@ -321,9 +262,7 @@ CRITICAL RULES:
   const jsonRes = await response.json();
   const rawText = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
   
-  if (!rawText) {
-    throw new Error("AI returned an empty response.");
-  }
+  if (!rawText) throw new Error("AI returned an empty response.");
 
   try {
     const cleanJson = rawText.replace(/```json\n?|\n?```/g, '').trim();
@@ -451,7 +390,7 @@ export default function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
-  const [view, setView] = useState('library');
+  const [view, setView] = useState('library'); // 'library' | 'starred' | 'add'
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [userApiKey, setUserApiKey] = useState('');
@@ -475,9 +414,7 @@ export default function App() {
     const initAnon = async () => {
       try {
         if (!auth.currentUser) await signInAnonymously(auth);
-      } catch (err) {
-        console.warn("Anon Auth Notice:", err);
-      }
+      } catch (err) {}
     };
     initAnon();
 
@@ -494,9 +431,7 @@ export default function App() {
             if (snap.exists() && snap.data().apiKey) {
               setUserApiKey(snap.data().apiKey);
             }
-          } catch (e) {
-            console.warn("Profile fetch error:", e);
-          }
+          } catch (e) {}
         }
       }
     });
@@ -565,15 +500,7 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleLogout}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Logout</span>
-            </button>
-
+          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-2">
             <button
               onClick={() => setView('library')}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
@@ -581,26 +508,43 @@ export default function App() {
               }`}
             >
               <Library className="w-4 h-4" />
-              Library ({questions.length})
+              <span className="hidden sm:inline">Library</span>
+            </button>
+            <button
+              onClick={() => setView('starred')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
+                view === 'starred' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-amber-500 hover:bg-slate-700'
+              }`}
+            >
+              <Star className="w-4 h-4" />
+              <span className="hidden sm:inline">Starred</span>
             </button>
             <button
               onClick={() => { setView('add'); setEditingQuestion(null); }}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                view === 'add' ? 'bg-blue-600 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                view === 'add' ? 'bg-emerald-600 text-white' : 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-sm'
               }`}
             >
               <Plus className="w-4 h-4" />
-              Add Question
+              <span className="hidden sm:inline">Add</span>
+            </button>
+            
+            <button
+              onClick={handleLogout}
+              className="px-2.5 py-1.5 ml-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-red-600 hover:text-white text-slate-400 transition"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>
       </header>
 
       <main className="flex-1 max-w-4xl w-full mx-auto p-4 py-6">
-        {view === 'library' ? (
+        {view === 'library' || view === 'starred' ? (
           <LibraryView 
-            questions={questions} 
+            questions={view === 'starred' ? questions.filter(q => q.isStarred) : questions} 
             user={activeUser} 
+            isStarredView={view === 'starred'}
             onEdit={(q) => {
               setEditingQuestion(q);
               setView('add');
@@ -622,7 +566,7 @@ export default function App() {
 }
 
 // --- LIBRARY VIEW COMPONENT ---
-function LibraryView({ questions, user, onEdit }) {
+function LibraryView({ questions, user, isStarredView, onEdit }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -630,6 +574,16 @@ function LibraryView({ questions, user, onEdit }) {
 
   const toggleAnswer = (id) => {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleStar = async (id, currentStatus) => {
+    if (!user || !db) return;
+    try {
+      const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', id);
+      await updateDoc(docRef, { isStarred: !currentStatus });
+    } catch (err) {
+      console.error("Star toggle error:", err);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -664,16 +618,15 @@ function LibraryView({ questions, user, onEdit }) {
 
   return (
     <div className="space-y-5">
-      <div className="bg-gradient-to-r from-blue-900 to-slate-900 text-white p-4 rounded-2xl border border-blue-800 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-        <div>
-          <h3 className="font-bold text-xs flex items-center gap-1.5 text-blue-200">
-            <User className="w-4 h-4 text-emerald-400" /> Account Cloud Sync Active
-          </h3>
-          <p className="text-[11px] text-slate-300 mt-0.5">
-            Your saved HKDSE questions sync automatically across devices.
-          </p>
+      {isStarredView && (
+        <div className="bg-amber-100 border border-amber-300 text-amber-900 p-4 rounded-xl shadow-sm flex items-center gap-3">
+          <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+          <div>
+            <h2 className="font-bold text-sm">Starred Questions</h2>
+            <p className="text-xs">Your highly important revision items are pinned here.</p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div>
@@ -718,7 +671,7 @@ function LibraryView({ questions, user, onEdit }) {
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Search Keywords</label>
             <input
               type="text"
-              placeholder="e.g. projectile, 2023 Q4..."
+              placeholder="e.g. projectile, 2023..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -729,15 +682,18 @@ function LibraryView({ questions, user, onEdit }) {
       {filteredQuestions.length === 0 ? (
         <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
           <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <h3 className="font-bold text-slate-700 text-sm mb-1">No questions match your filter</h3>
+          <h3 className="font-bold text-slate-700 text-sm mb-1">
+            {isStarredView ? 'No starred questions found' : 'No questions match your filter'}
+          </h3>
           <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            Try resetting your filters or scan a new question.
+            {isStarredView ? 'Star questions in your library to pin them here.' : 'Try resetting your filters or add a new question.'}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {filteredQuestions.map((q) => (
-            <div key={q.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+            <div key={q.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative group">
+              
               <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800">
@@ -753,17 +709,17 @@ function LibraryView({ questions, user, onEdit }) {
                   )}
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button
-                    onClick={() => onEdit(q)}
-                    className="text-slate-400 hover:text-blue-600 transition p-1"
+                    onClick={() => toggleStar(q.id, q.isStarred)}
+                    className="p-1 transition"
                   >
+                    <Star className={`w-5 h-5 ${q.isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-300 hover:text-amber-300'}`} />
+                  </button>
+                  <button onClick={() => onEdit(q)} className="text-slate-400 hover:text-blue-600 transition p-1">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(q.id)}
-                    className="text-slate-400 hover:text-red-600 transition p-1"
-                  >
+                  <button onClick={() => handleDelete(q.id)} className="text-slate-400 hover:text-red-600 transition p-1">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
@@ -802,7 +758,7 @@ function LibraryView({ questions, user, onEdit }) {
                   </div>
                 )}
 
-                {q.answerText && (
+                {(q.answerText || q.remarks) && (
                   <div className="pt-2 border-t border-slate-100">
                     <button
                       onClick={() => toggleAnswer(q.id)}
@@ -811,14 +767,24 @@ function LibraryView({ questions, user, onEdit }) {
                       {visibleAnswers[q.id] ? (
                         <><EyeOff className="w-3.5 h-3.5" /> Hide Solution</>
                       ) : (
-                        <><Eye className="w-3.5 h-3.5" /> Reveal Solution</>
+                        <><Eye className="w-3.5 h-3.5" /> Reveal Solution & Remarks</>
                       )}
                     </button>
 
                     {visibleAnswers[q.id] && (
-                      <div className="mt-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 whitespace-pre-wrap font-mono">
-                        <span className="font-bold font-sans block mb-1 text-emerald-900">Marking Scheme / Answer:</span>
-                        {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                      <div className="mt-3 space-y-2">
+                        {q.answerText && (
+                          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 whitespace-pre-wrap font-mono">
+                            <span className="font-bold font-sans block mb-1 text-emerald-900">Marking Scheme / Answer:</span>
+                            {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                          </div>
+                        )}
+                        {q.remarks && (
+                          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-950 whitespace-pre-wrap">
+                            <span className="font-bold font-sans block mb-1 text-indigo-900">Remarks / Notes:</span>
+                            {q.remarks}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -842,8 +808,8 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const [status, setStatus] = useState('idle');
   const [errorText, setErrorText] = useState('');
 
-  const [subjectKey, setSubjectKey] = useState('physics');
-  const [topic, setTopic] = useState(HKDSE_SYLLABUS['physics'].topics[0]);
+  const [subjectKey, setSubjectKey] = useState('biology');
+  const [topic, setTopic] = useState(HKDSE_SYLLABUS['biology'].topics[0]);
   const [questionType, setQuestionType] = useState('MC');
   const [source, setSource] = useState('');
   const [questionText, setQuestionText] = useState('');
@@ -954,7 +920,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         ]);
 
         try {
-          // Pass pre-extracted text + image payload to Gemini 3.1 Flash Lite
           const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, userApiKey, localExtractedText);
           
           if (aiData.subject) {
@@ -972,10 +937,8 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
           if (aiData.answer) setAnswerText(typeof aiData.answer === 'object' ? JSON.stringify(aiData.answer) : String(aiData.answer));
           if (aiData.options && typeof aiData.options === 'object') {
             setOptions({
-              A: String(aiData.options.A || ''),
-              B: String(aiData.options.B || ''),
-              C: String(aiData.options.C || ''),
-              D: String(aiData.options.D || '')
+              A: String(aiData.options.A || ''), B: String(aiData.options.B || ''),
+              C: String(aiData.options.C || ''), D: String(aiData.options.D || '')
             });
           } else {
             const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(aiData.question || localExtractedText);
@@ -1001,7 +964,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
 
   const handleSaveQuestion = async () => {
     if (!questionText.trim()) {
-      setErrorText('Question text cannot be empty.');
+      setErrorText('Question Body cannot be empty.');
       return;
     }
     if (!user || !db) {
@@ -1023,20 +986,15 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         options: questionType === 'MC' ? options : null,
         remarks: remarks.trim(),
         attachedImage: includeImage ? attachedImage : null,
+        isStarred: editData ? editData.isStarred || false : false 
       };
 
       if (editData && editData.id) {
         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', editData.id);
-        await updateDoc(docRef, {
-          ...questionData,
-          updatedAt: new Date().toISOString()
-        });
+        await updateDoc(docRef, { ...questionData, updatedAt: new Date().toISOString() });
       } else {
         const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
-        await addDoc(qRef, {
-          ...questionData,
-          createdAt: new Date().toISOString()
-        });
+        await addDoc(qRef, { ...questionData, createdAt: new Date().toISOString() });
       }
 
       onSaved();
@@ -1078,7 +1036,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 ocrEngine === 'ai' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-700'
               }`}
             >
-              <Key className="w-4 h-4" /> Gemini 3.1 Flash Lite AI
+              <Key className="w-4 h-4" /> Gemini 3.1 AI
             </button>
 
             <button
@@ -1088,7 +1046,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 ocrEngine === 'local' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-700'
               }`}
             >
-              <FileText className="w-4 h-4" /> Local Browser OCR
+              <FileText className="w-4 h-4" /> Local OCR
             </button>
           </div>
 
@@ -1099,8 +1057,12 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 placeholder="Enter your Gemini API Key..."
                 value={userApiKey}
                 onChange={(e) => setUserApiKey(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none mb-1"
               />
+              <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-start gap-1.5">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
+                <p><strong>Note:</strong> A VPN (connected outside Hong Kong) is required for Google Gemini AI to function. If the API fails, the app will automatically fall back to Local OCR, which lacks automatic answer separation.</p>
+              </div>
             </div>
           )}
         </div>
@@ -1163,7 +1125,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 onClick={handleRunOCR}
                 className="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
               >
-                <RefreshCw className="w-4 h-4" /> Extract Text from Image (Gemini 3.1 Flash Lite)
+                <RefreshCw className="w-4 h-4" /> Extract Text from Image
               </button>
           )}
 
@@ -1179,7 +1141,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         {status === 'scanning' ? (
           <div className="flex flex-col items-center justify-center p-6 space-y-2">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <p className="text-xs text-slate-600 font-medium">Extracting & Categorizing via Gemini 3.1 Flash Lite...</p>
+            <p className="text-xs text-slate-600 font-medium">Extracting & Categorizing Text...</p>
           </div>
         ) : (
           <div className="space-y-4 pt-2 border-t border-slate-100">
@@ -1224,7 +1186,9 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
 
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Question Body</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
+                  Question Body <span className="text-red-500 text-xs">*</span>
+                </label>
                 {questionType === 'MC' && questionText && (
                   <button
                     type="button"
@@ -1238,6 +1202,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               <textarea
                 rows={4}
                 value={questionText}
+                required
                 onChange={(e) => setQuestionText(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
               />
@@ -1267,6 +1232,18 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500"
+              />
+            </div>
+
+            {/* Added Remarks Field */}
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Remarks / Notes</label>
+              <textarea
+                rows={2}
+                placeholder="e.g. Remember the formula for this..."
+                value={remarks}
+                onChange={(e) => setRemarks(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500"
               />
             </div>
 
