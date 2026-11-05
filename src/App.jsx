@@ -3,16 +3,14 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   signInAnonymously,
-  signInWithCustomToken,
   onAuthStateChanged,
-  createUserWithEmailAndPassword,
-  signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
 import {
   getFirestore,
   collection,
   addDoc,
+  getDocs,
   onSnapshot,
   deleteDoc,
   doc,
@@ -45,6 +43,27 @@ import {
   Pencil,
   RefreshCw
 } from 'lucide-react';
+
+// Safe Firebase Initializer
+let app, auth, db, appId = 'hkdse-app-4a594';
+
+try {
+  const firebaseConfig = {
+    apiKey: "AIzaSyAu97M1DGExntXKVLdlZtX2DXIGs2zsnVA",
+    authDomain: "hkdse-app-4a594.firebaseapp.com",
+    projectId: "hkdse-app-4a594",
+    storageBucket: "hkdse-app-4a594.firebasestorage.app",
+    messagingSenderId: "14854715570",
+    appId: "1:14854715570:web:70fe20509bf6574ae9b1ab",
+    measurementId: "G-5QRG5JR0WB"
+  };
+  
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  db = getFirestore(app);
+} catch (e) {
+  console.warn("Firebase Setup Warning:", e);
+}
 
 // --- STRICT HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
