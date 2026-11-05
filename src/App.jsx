@@ -235,37 +235,39 @@ const runLocalOCR = async (imageFile) => {
 };
 
 // Gemini 3.1 Flash Lite OCR with JSON Schema output and Fallback parsing
+// Gemini 3.1 Flash Lite OCR with JSON Schema output and robust parsing
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
   const effectiveKey = apiKey || '';
   if (!effectiveKey) {
     throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
   }
 
-  // Use explicit gemini-3.1-flash-lite endpoint
+  // Explicitly using gemini-3.1-flash-lite
   const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
 
   const prompt = questionType === 'MC' 
-    ? `You are an expert HKDSE exam parsing assistant. Analyze this Multiple Choice (MC) question image and raw OCR text:
-${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
+    ? `Analyze this Multiple Choice (MC) question. 
+Raw OCR text context: "${preExtractedText}"
 
-CRITICAL EXTRACTION REQUIREMENTS:
-1. Extract the main question text excluding options A, B, C, and D.
-2. Carefully separate choices into options A, B, C, and D. Ensure option values are strings containing exact option descriptions.
-3. Identify the correct answer (A, B, C, or D) based on handwritten markings or solution logic.
-Return valid JSON only matching the schema.`
-    : `You are an expert HKDSE exam parsing assistant. Analyze this Long Question (LQ) image and raw text:
-${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
+Extract the content strictly into this JSON format:
+1. "question": The main question text ONLY (do not include the A, B, C, D choices here).
+2. "options": An object containing the choices mapped to keys A, B, C, and D.
+3. "answer": The correct answer (A, B, C, or D) or any visible solution steps.
+Return ONLY valid JSON.`
+    : `Analyze this Long Question (LQ).
+Raw OCR text context: "${preExtractedText}"
 
-CRITICAL EXTRACTION REQUIREMENTS:
-1. Extract clean printed question text into "question".
-2. Extract full step-by-step solutions or teacher markings into "answer".
-Return valid JSON only matching the schema.`;
+Extract the content strictly into this JSON format:
+1. "question": The full question text.
+2. "answer": Step-by-step solutions or teacher markings if visible.
+Return ONLY valid JSON.`;
 
   const parts = [{ text: prompt }];
   if (base64Image) {
     parts.push({ inlineData: { mimeType: mimeType || 'image/jpeg', data: base64Image } });
   }
 
+  // Simplified schema without strict 'required' arrays that crash the extraction if an option is blurry
   const responseSchema = questionType === 'MC' ? {
     type: "OBJECT",
     properties: {
@@ -277,19 +279,16 @@ Return valid JSON only matching the schema.`;
           B: { type: "STRING" },
           C: { type: "STRING" },
           D: { type: "STRING" }
-        },
-        required: ["A", "B", "C", "D"]
+        }
       },
       answer: { type: "STRING" }
-    },
-    required: ["question", "options", "answer"]
+    }
   } : {
     type: "OBJECT",
     properties: {
       question: { type: "STRING" },
       answer: { type: "STRING" }
-    },
-    required: ["question", "answer"]
+    }
   };
 
   const requestBody = JSON.stringify({
@@ -297,12 +296,11 @@ Return valid JSON only matching the schema.`;
     generationConfig: { 
       responseMimeType: 'application/json',
       responseSchema: responseSchema,
-      maxOutputTokens: 1024,
       temperature: 0.1
     }
   });
 
-  let response = await fetch(primaryEndpoint, {
+  const response = await fetch(primaryEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: requestBody
@@ -321,61 +319,21 @@ Return valid JSON only matching the schema.`;
   }
 
   try {
-    return JSON.parse(rawText);
-  } catch (err) {
-    // Fallback regex parsing if JSON string format contains unescaped characters
+    // Strip markdown formatting if the model unexpectedly wraps the JSON response
     const cleanJson = rawText.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleanJson);
+    const parsedData = JSON.parse(cleanJson);
+    
+    // Ensure nested options exist for MC to prevent UI crashes
+    if (questionType === 'MC' && !parsedData.options) {
+      parsedData.options = { A: '', B: '', C: '', D: '' };
+    }
+    
+    return parsedData;
+  } catch (err) {
+    console.error("JSON Parsing Error on string:", rawText);
+    throw new Error("Failed to parse AI output into structured data.");
   }
 };
-
-// --- AUTHENTICATION & LOGIN VIEW ---
-function AuthView({ onLoginSuccess }) {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handleAuth = async (isLogin) => {
-    if (!username.trim() || !password.trim()) {
-      setError('Username and password are required.');
-      return;
-    }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters.');
-      return;
-    }
-    
-    setLoading(true);
-    setError('');
-    const email = `${username.trim().toLowerCase()}@dsehub.local`;
-    
-    try {
-      if (auth) {
-        if (isLogin) {
-          await signInWithEmailAndPassword(auth, email, password);
-        } else {
-          await createUserWithEmailAndPassword(auth, email, password);
-        }
-        onLoginSuccess(null);
-      } else {
-        const fallbackUid = 'usr_' + btoa(username.trim().toLowerCase()).replace(/=/g, '');
-        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim() });
-      }
-    } catch (err) {
-      let msg = err.message || '';
-      if (msg.includes('auth/invalid-credential') || msg.includes('auth/user-not-found') || msg.includes('auth/wrong-password')) {
-        setError('Invalid username or password.');
-      } else if (msg.includes('auth/email-already-in-use')) {
-        setError('This username is already registered! Click "Log In" instead.');
-      } else {
-        const fallbackUid = 'usr_' + btoa(username.trim().toLowerCase()).replace(/=/g, '');
-        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim() });
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
