@@ -31,15 +31,19 @@ import {
   Key,
   FileText,
   CheckCircle2,
+  CheckCircle,
+  XCircle,
   Eye,
   EyeOff,
   LogOut,
-  User,
   Pencil,
   RefreshCw,
   Wand2,
   AlertCircle,
-  Star
+  Info,
+  Globe2,
+  Sparkles,
+  Clock
 } from 'lucide-react';
 
 // --- HKDSE SYLLABUS DATA STRUCTURE (Alphabetical Order) ---
@@ -221,8 +225,8 @@ ${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
 
 CRITICAL RULES:
 1. "subject": Auto-detect subject ("Biology", "Chemistry", "Economics", "M1", "M2", "Math Compulsory", or "Physics").
-2. "question": Extract ONLY the main question body text. DO NOT include choice options A, B, C, D in the question string.
-3. "options": Map the exact text for choices A, B, C, and D into their respective keys.
+2. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
+3. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D. Even if the OCR misread the letters (e.g., read 'A' as '@', 'B' as '8', or mangled them), use the visual layout and context from the image to correctly assign them to A, B, C, D. Strip the letter prefixes from the final option text.
 4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.`;
 
   const parts = [{ text: prompt }];
@@ -272,12 +276,13 @@ CRITICAL RULES:
   }
 };
 
-// --- AUTHENTICATION VIEW ---
+// --- AUTHENTICATION VIEW WITH USAGE GUIDE ---
 function AuthView({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const handleAuth = async (isLogin) => {
     if (!username.trim() || !password.trim()) {
@@ -321,63 +326,126 @@ function AuthView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
-      <div className="bg-white max-w-md w-full rounded-3xl p-8 shadow-2xl border border-slate-700">
-         <div className="text-center mb-6">
-            <div className="bg-blue-600 p-3.5 rounded-2xl inline-block mb-4 shadow-lg shadow-blue-600/30">
-               <BookOpen className="w-8 h-8 text-white" />
-            </div>
-            <h2 className="text-2xl font-bold text-slate-900">HKDSE Revision Hub</h2>
-            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-              Login to access and sync your question bank across devices.
-            </p>
-         </div>
-         
-         {error && (
-           <div className="bg-red-50 text-red-700 p-3.5 rounded-xl text-sm mb-5 border border-red-200 font-medium">
-             {error}
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
+      <div className="max-w-4xl w-full flex flex-col md:flex-row gap-6 items-start justify-center">
+        
+        {/* LOGIN CARD */}
+        <div className="bg-white/95 backdrop-blur-sm w-full md:w-[420px] rounded-3xl p-8 shadow-2xl border border-white/10 shrink-0">
+           <div className="text-center mb-8">
+              <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-4 rounded-2xl inline-block mb-5 shadow-lg shadow-blue-600/30">
+                 <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">HKDSE Hub</h2>
+              <p className="text-sm text-slate-500 mt-2 font-medium">
+                Your intelligent exam revision bank.
+              </p>
            </div>
-         )}
+           
+           {error && (
+             <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm mb-6 border border-red-100 font-medium flex items-start gap-2">
+               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
+               {error}
+             </div>
+           )}
 
-         <div className="space-y-4">
-            <div>
-               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Username</label>
-               <input 
-                 type="text" 
-                 value={username}
-                 onChange={e => setUsername(e.target.value)}
-                 className="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 transition"
-                 placeholder="e.g. jason_dse2025"
-               />
-            </div>
-            <div>
-               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Password</label>
-               <input 
-                 type="password" 
-                 value={password}
-                 onChange={e => setPassword(e.target.value)}
-                 className="w-full bg-slate-50 border border-slate-300 text-slate-800 rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-blue-500 transition"
-                 placeholder="Minimum 6 characters"
-               />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-3 pt-3">
-               <button 
-                 onClick={() => handleAuth(true)}
-                 disabled={loading}
-                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center shadow-md shadow-blue-600/20"
-               >
-                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
-               </button>
-               <button 
-                 onClick={() => handleAuth(false)}
-                 disabled={loading}
-                 className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center shadow-md shadow-slate-900/20"
-               >
-                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-               </button>
-            </div>
-         </div>
+           <div className="space-y-5">
+              <div>
+                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Username</label>
+                 <input 
+                   type="text" 
+                   value={username}
+                   onChange={e => setUsername(e.target.value)}
+                   className="w-full bg-slate-50/50 border border-slate-200 text-slate-800 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                   placeholder="e.g. jason_dse2025"
+                 />
+              </div>
+              <div>
+                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Password</label>
+                 <input 
+                   type="password" 
+                   value={password}
+                   onChange={e => setPassword(e.target.value)}
+                   className="w-full bg-slate-50/50 border border-slate-200 text-slate-800 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                   placeholder="Minimum 6 characters"
+                 />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 pt-4">
+                 <button 
+                   onClick={() => handleAuth(true)}
+                   disabled={loading}
+                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
+                 >
+                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
+                 </button>
+                 <button 
+                   onClick={() => handleAuth(false)}
+                   disabled={loading}
+                   className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-slate-900/20 active:scale-[0.98]"
+                 >
+                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign Up'}
+                 </button>
+              </div>
+
+              <div className="pt-4 md:hidden">
+                 <button 
+                   onClick={() => setShowGuide(!showGuide)}
+                   className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl"
+                 >
+                   <Info className="w-4 h-4" /> {showGuide ? 'Hide Guide' : 'Read Usage Guide'}
+                 </button>
+              </div>
+           </div>
+        </div>
+
+        {/* USAGE GUIDE CARD */}
+        <div className={`w-full md:w-[480px] bg-slate-800/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl transition-all duration-300 ${showGuide ? 'block' : 'hidden md:block'}`}>
+           <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-300">
+             <Sparkles className="w-6 h-6" /> Welcome to the Hub
+           </h3>
+           
+           <div className="space-y-6 text-sm text-slate-300">
+             
+             <div>
+               <h4 className="font-bold text-white mb-2 flex items-center gap-2">
+                 <BookOpen className="w-4 h-4 text-emerald-400" /> 1. Core Functions
+               </h4>
+               <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
+                 <li><strong>Snap & Store:</strong> Take photos of DSE past papers (MC or LQ).</li>
+                 <li><strong>AI Separation:</strong> Automatically extracts questions, options (A/B/C/D), and marks the correct topic.</li>
+                 <li><strong>Library & Status:</strong> Label your questions with a <span className="text-emerald-400 font-bold">Tick</span> (Mastered) or <span className="text-rose-400 font-bold">Cross</span> (Needs Review) to track your revision progress easily!</li>
+               </ul>
+             </div>
+
+             <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
+               <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                 <Key className="w-4 h-4 text-amber-400" /> 2. Setting Up Gemini AI (Free)
+               </h4>
+               <ol className="space-y-2 pl-4 list-decimal marker:text-amber-500/70 text-xs leading-relaxed">
+                 <li>Go to <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a>.</li>
+                 <li>Sign in with your Google Account.</li>
+                 <li>Click <strong>"Get API Key"</strong> and create a new key.</li>
+                 <li>Copy the key. Once you log in here and click "Add", paste it into the <strong>Gemini API Key</strong> box.</li>
+               </ol>
+             </div>
+
+             <div className="bg-rose-950/30 p-5 rounded-2xl border border-rose-900/50">
+               <h4 className="font-bold text-rose-300 mb-2 flex items-center gap-2">
+                 <Globe2 className="w-4 h-4" /> 3. Important: VPN Requirement
+               </h4>
+               <p className="text-xs leading-relaxed text-rose-200/80">
+                 Google's Gemini AI services are currently <strong>restricted in Hong Kong</strong>. 
+                 To use the AI OCR (which automatically separates MC options and auto-detects subjects), 
+                 <strong> you MUST turn on a VPN</strong> (e.g., connected to US, UK, Taiwan, or Japan).
+               </p>
+               <p className="text-xs leading-relaxed text-rose-200/80 mt-2">
+                 <em>If you don't use a VPN, the app will fall back to Local OCR, which only dumps raw text without intelligent formatting.</em>
+               </p>
+             </div>
+
+           </div>
+        </div>
+
       </div>
     </div>
   );
@@ -390,7 +458,7 @@ export default function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
-  const [view, setView] = useState('library'); // 'library' | 'starred' | 'add'
+  const [view, setView] = useState('library'); // 'library' | 'review' | 'mastered' | 'add'
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [userApiKey, setUserApiKey] = useState('');
@@ -462,8 +530,11 @@ export default function App() {
 
   if (loadingAuth) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-400" />
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-indigo-950 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
+          <span className="text-indigo-200 text-sm font-medium">Loading Workspace...</span>
+        </div>
       </div>
     );
   }
@@ -485,17 +556,17 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      <header className="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-        <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 bg-blue-600 rounded-lg">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-xl shadow-md shadow-indigo-200">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-base leading-tight">HKDSE Revision Hub</h1>
-              <p className="text-[10px] text-slate-400 flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full inline-block animate-pulse bg-emerald-400"></span>
-                User: {displayUsername}
+              <h1 className="font-bold text-[15px] leading-tight text-slate-900">HKDSE Revision Hub</h1>
+              <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full inline-block animate-pulse bg-emerald-500"></span>
+                {displayUsername}
               </p>
             </div>
           </div>
@@ -503,35 +574,47 @@ export default function App() {
           <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-2">
             <button
               onClick={() => setView('library')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                view === 'library' ? 'bg-blue-600 text-white' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                view === 'library' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
               <Library className="w-4 h-4" />
               <span className="hidden sm:inline">Library</span>
             </button>
             <button
-              onClick={() => setView('starred')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                view === 'starred' ? 'bg-amber-500 text-white' : 'bg-slate-800 text-amber-500 hover:bg-slate-700'
+              onClick={() => setView('review')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                view === 'review' ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-700'
               }`}
             >
-              <Star className="w-4 h-4" />
-              <span className="hidden sm:inline">Starred</span>
+              <XCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Review</span>
+            </button>
+            <button
+              onClick={() => setView('mastered')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                view === 'mastered' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700'
+              }`}
+            >
+              <CheckCircle className="w-4 h-4" />
+              <span className="hidden sm:inline">Mastered</span>
             </button>
             <button
               onClick={() => { setView('add'); setEditingQuestion(null); }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-                view === 'add' ? 'bg-emerald-600 text-white' : 'bg-emerald-700 hover:bg-emerald-600 text-white shadow-sm'
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                view === 'add' ? 'bg-slate-900 text-white shadow-md shadow-slate-400' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-sm'
               }`}
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add</span>
             </button>
             
+            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+            
             <button
               onClick={handleLogout}
-              className="px-2.5 py-1.5 ml-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-red-600 hover:text-white text-slate-400 transition"
+              className="p-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
+              title="Logout"
             >
               <LogOut className="w-4 h-4" />
             </button>
@@ -539,12 +622,12 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-4xl w-full mx-auto p-4 py-6">
-        {view === 'library' || view === 'starred' ? (
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 py-8">
+        {view === 'library' || view === 'review' || view === 'mastered' ? (
           <LibraryView 
-            questions={view === 'starred' ? questions.filter(q => q.isStarred) : questions} 
+            questions={view === 'review' ? questions.filter(q => q.status === 'review') : view === 'mastered' ? questions.filter(q => q.status === 'mastered') : questions} 
             user={activeUser} 
-            isStarredView={view === 'starred'}
+            currentView={view}
             onEdit={(q) => {
               setEditingQuestion(q);
               setView('add');
@@ -566,7 +649,7 @@ export default function App() {
 }
 
 // --- LIBRARY VIEW COMPONENT ---
-function LibraryView({ questions, user, isStarredView, onEdit }) {
+function LibraryView({ questions, user, currentView, onEdit }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -576,13 +659,13 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const toggleStar = async (id, currentStatus) => {
+  const toggleStatus = async (id, newStatus) => {
     if (!user || !db) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', id);
-      await updateDoc(docRef, { isStarred: !currentStatus });
+      await updateDoc(docRef, { status: newStatus });
     } catch (err) {
-      console.error("Star toggle error:", err);
+      console.error("Status toggle error:", err);
     }
   };
 
@@ -617,20 +700,34 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
   });
 
   return (
-    <div className="space-y-5">
-      {isStarredView && (
-        <div className="bg-amber-100 border border-amber-300 text-amber-900 p-4 rounded-xl shadow-sm flex items-center gap-3">
-          <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+    <div className="space-y-6">
+      {currentView === 'review' && (
+        <div className="bg-gradient-to-r from-rose-50 to-red-50 border border-rose-200 text-rose-900 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+          <div className="bg-rose-100 p-2.5 rounded-xl">
+            <XCircle className="w-6 h-6 text-rose-500" />
+          </div>
           <div>
-            <h2 className="font-bold text-sm">Starred Questions</h2>
-            <p className="text-xs">Your highly important revision items are pinned here.</p>
+            <h2 className="font-extrabold text-base">Needs Review</h2>
+            <p className="text-sm font-medium text-rose-700/80">Questions you marked with a Cross to revisit later.</p>
           </div>
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {currentView === 'mastered' && (
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 border border-emerald-200 text-emerald-900 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+          <div className="bg-emerald-100 p-2.5 rounded-xl">
+            <CheckCircle className="w-6 h-6 text-emerald-500" />
+          </div>
+          <div>
+            <h2 className="font-extrabold text-base">Mastered Questions</h2>
+            <p className="text-sm font-medium text-emerald-700/80">Questions you marked with a Tick that you have fully understood.</p>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div>
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Subject</label>
+          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Subject</label>
             <div className="relative">
               <select
                 value={selectedSubjectKey}
@@ -638,158 +735,189 @@ function LibraryView({ questions, user, isStarredView, onEdit }) {
                   setSelectedSubjectKey(e.target.value);
                   setSelectedTopic('all');
                 }}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl py-2 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
               >
                 <option value="all">All Subjects</option>
                 {subjectKeys.map(k => (
                   <option key={k} value={k}>{HKDSE_SYLLABUS[k].name}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Sub-topic</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Sub-topic</label>
             <div className="relative">
               <select
                 value={selectedTopic}
                 onChange={(e) => setSelectedTopic(e.target.value)}
                 disabled={selectedSubjectKey === 'all'}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl py-2 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-blue-500 outline-none disabled:opacity-50"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none disabled:opacity-50 transition-all"
               >
                 <option value="all">All Sub-topics</option>
                 {activeTopics.map((t, idx) => (
                   <option key={idx} value={t}>{t}</option>
                 ))}
               </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-2.5 top-2.5 pointer-events-none" />
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
             </div>
           </div>
 
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Search Keywords</label>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Search Keywords</label>
             <input
               type="text"
               placeholder="e.g. projectile, 2023..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
             />
           </div>
       </div>
 
       {filteredQuestions.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-slate-300 p-12 text-center">
-          <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-          <h3 className="font-bold text-slate-700 text-sm mb-1">
-            {isStarredView ? 'No starred questions found' : 'No questions match your filter'}
+        <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-16 text-center shadow-sm">
+          <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+             <BookOpen className="w-8 h-8 text-slate-300" />
+          </div>
+          <h3 className="font-extrabold text-slate-700 text-lg mb-2">
+            {currentView === 'review' ? 'No review questions found' : currentView === 'mastered' ? 'No mastered questions found' : 'No questions match your filter'}
           </h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto">
-            {isStarredView ? 'Star questions in your library to pin them here.' : 'Try resetting your filters or add a new question.'}
+          <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">
+            {currentView === 'review' || currentView === 'mastered' ? 'Use the Tick and Cross buttons on your questions to organize them.' : 'Try resetting your filters or add a new question to your bank.'}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredQuestions.map((q) => (
-            <div key={q.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col relative group">
+            <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group">
               
-              <div className="bg-slate-50 px-4 py-3 border-b border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-blue-100 text-blue-800">
+              <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
                     {q.subject || 'HKDSE'}
                   </span>
-                  <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold bg-purple-100 text-purple-800">
-                    {q.type === 'MC' ? 'Multiple Choice (MC)' : 'Long Question (LQ)'}
+                  <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                    {q.type === 'MC' ? 'MC' : 'LQ'}
                   </span>
                   {q.source && (
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-200 text-slate-700">
-                      Source: {q.source}
+                    <span className="px-3 py-1 rounded-lg text-xs font-bold bg-white text-slate-600 border border-slate-200 shadow-sm">
+                      {q.source}
                     </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1">
                   <button
-                    onClick={() => toggleStar(q.id, q.isStarred)}
-                    className="p-1 transition"
+                    onClick={() => toggleStatus(q.id, q.status === 'mastered' ? 'unmarked' : 'mastered')}
+                    className={`p-1.5 rounded-lg transition-colors ${q.status === 'mastered' ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-50'}`}
+                    title="Mark as Mastered (Tick)"
                   >
-                    <Star className={`w-5 h-5 ${q.isStarred ? 'text-amber-400 fill-amber-400' : 'text-slate-300 hover:text-amber-300'}`} />
+                    <CheckCircle className="w-4 h-4" />
                   </button>
-                  <button onClick={() => onEdit(q)} className="text-slate-400 hover:text-blue-600 transition p-1">
+                  <button
+                    onClick={() => toggleStatus(q.id, q.status === 'review' ? 'unmarked' : 'review')}
+                    className={`p-1.5 rounded-lg transition-colors ${q.status === 'review' ? 'text-rose-600 bg-rose-100' : 'text-slate-300 hover:text-rose-500 hover:bg-slate-50'}`}
+                    title="Needs Review (Cross)"
+                  >
+                    <XCircle className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-4 bg-slate-200 mx-0.5"></div>
+                  <button onClick={() => onEdit(q)} className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-50 transition-colors" title="Edit">
                     <Pencil className="w-4 h-4" />
                   </button>
-                  <button onClick={() => handleDelete(q.id)} className="text-slate-400 hover:text-red-600 transition p-1">
+                  <button onClick={() => handleDelete(q.id)} className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors" title="Delete">
                     <Trash2 className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {q.topic && (
-                <div className="px-4 pt-3 text-[11px] font-medium text-slate-500">
-                  <span className="font-bold text-slate-700">Sub-topic:</span> {q.topic}
+                <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-0.5">Topic</span>
+                    <span className="leading-tight">{q.topic}</span>
+                  </div>
+                  
+                  {/* LOCAL DATE AND TIME DISPLAY */}
+                  {q.createdAt && (
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mt-0.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                      <Clock className="w-3 h-3" />
+                      {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
+                    </div>
+                  )}
                 </div>
               )}
 
               {q.attachedImage && (
-                <div className="px-4 pt-3">
-                  <img src={q.attachedImage} alt="Diagram" className="max-h-64 rounded-xl border border-slate-200 object-contain bg-slate-50" />
+                <div className="px-5 pt-4">
+                  <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex items-center justify-center p-2">
+                    <img src={q.attachedImage} alt="Diagram" className="max-h-56 object-contain rounded-xl mix-blend-multiply" />
+                  </div>
                 </div>
               )}
 
-              <div className="p-4 space-y-3">
-                <div className="text-xs text-slate-800 whitespace-pre-wrap leading-relaxed">
-                  <span className="font-bold text-slate-900 block mb-1 text-xs">Question:</span>
+              <div className="p-5 space-y-4 flex-1">
+                <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
                   {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
                 </div>
 
                 {q.type === 'MC' && q.options && typeof q.options === 'object' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                  <div className="grid grid-cols-1 gap-2.5 pt-3">
                     {['A', 'B', 'C', 'D'].map(letter => {
                       const optVal = q.options[letter];
                       if (!optVal) return null;
                       return (
-                        <div key={letter} className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs flex items-start gap-2">
-                          <span className="font-bold text-blue-600">{letter}.</span>
-                          <span className="text-slate-800 flex-1">{String(optVal)}</span>
+                        <div key={letter} className="bg-white hover:bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm flex items-start gap-3 transition-colors shadow-sm">
+                          <span className="font-extrabold text-indigo-600 bg-indigo-50 w-6 h-6 rounded-md flex items-center justify-center shrink-0">{letter}</span>
+                          <span className="text-slate-700 font-medium pt-0.5">{String(optVal)}</span>
                         </div>
                       );
                     })}
                   </div>
                 )}
+              </div>
 
-                {(q.answerText || q.remarks) && (
-                  <div className="pt-2 border-t border-slate-100">
+              {(q.answerText || q.remarks) && (
+                <div className="px-5 pb-5 mt-auto">
+                  <div className="pt-4 border-t border-slate-100">
                     <button
                       onClick={() => toggleAnswer(q.id)}
-                      className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 transition"
+                      className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 hover:text-indigo-600 flex items-center justify-center gap-2 transition-all"
                     >
                       {visibleAnswers[q.id] ? (
-                        <><EyeOff className="w-3.5 h-3.5" /> Hide Solution</>
+                        <><EyeOff className="w-4 h-4" /> Hide Solution</>
                       ) : (
-                        <><Eye className="w-3.5 h-3.5" /> Reveal Solution & Remarks</>
+                        <><Eye className="w-4 h-4" /> Reveal Solution & Remarks</>
                       )}
                     </button>
 
                     {visibleAnswers[q.id] && (
-                      <div className="mt-3 space-y-2">
+                      <div className="mt-3 space-y-3">
                         {q.answerText && (
-                          <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-950 whitespace-pre-wrap font-mono">
-                            <span className="font-bold font-sans block mb-1 text-emerald-900">Marking Scheme / Answer:</span>
+                          <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium">
+                            <span className="font-extrabold font-sans block mb-2 text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                               <CheckCircle2 className="w-4 h-4" /> Marking Scheme / Answer
+                            </span>
                             {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
                           </div>
                         )}
                         {q.remarks && (
-                          <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl text-xs text-indigo-950 whitespace-pre-wrap">
-                            <span className="font-bold font-sans block mb-1 text-indigo-900">Remarks / Notes:</span>
+                          <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-2xl text-sm text-indigo-900 whitespace-pre-wrap font-medium">
+                            <span className="font-extrabold font-sans block mb-2 text-indigo-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                               <Info className="w-4 h-4" /> Remarks / Notes
+                            </span>
                             {q.remarks}
                           </div>
                         )}
                       </div>
                     )}
                   </div>
-                )}
-              </div>
+                </div>
+              )}
+
             </div>
           ))}
         </div>
@@ -986,11 +1114,12 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         options: questionType === 'MC' ? options : null,
         remarks: remarks.trim(),
         attachedImage: includeImage ? attachedImage : null,
-        isStarred: editData ? editData.isStarred || false : false 
+        status: editData ? editData.status || 'unmarked' : 'unmarked' 
       };
 
       if (editData && editData.id) {
         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', editData.id);
+        // Retain original createdAt timestamp when updating
         await updateDoc(docRef, { ...questionData, updatedAt: new Date().toISOString() });
       } else {
         const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
@@ -1006,34 +1135,35 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   };
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="bg-slate-900 text-white p-4 flex justify-between items-center">
-        <h2 className="font-bold text-sm flex items-center gap-2">
-          {editData ? <Pencil className="w-4 h-4 text-amber-400" /> : <Camera className="w-4 h-4 text-emerald-400" />} 
+    <div className="max-w-3xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden">
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-5 flex justify-between items-center border-b border-slate-700">
+        <h2 className="font-extrabold text-base flex items-center gap-2.5">
+          {editData ? <Pencil className="w-5 h-5 text-amber-400" /> : <Camera className="w-5 h-5 text-emerald-400" />} 
           {editData ? 'Edit Question' : 'Snap & Store Question'}
         </h2>
         {editData && (
-          <button onClick={onCancel} className="text-slate-300 hover:text-white transition">
+          <button onClick={onCancel} className="text-slate-400 hover:text-white bg-slate-700/50 p-1.5 rounded-full transition-colors">
             <X className="w-5 h-5" />
           </button>
         )}
       </div>
 
-      <div className="p-5 space-y-5">
+      <div className="p-6 md:p-8 space-y-6">
         {errorText && (
-          <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-xs">
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm font-medium flex items-start gap-2 shadow-sm">
+             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
             {errorText}
           </div>
         )}
 
-        <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2">
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">OCR Engine</label>
-          <div className="grid grid-cols-2 gap-2">
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+          <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">1. Extraction Engine Settings</label>
+          <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() => setOcrEngine('ai')}
-              className={`p-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                ocrEngine === 'ai' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-700'
+              className={`p-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                ocrEngine === 'ai' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-100'
               }`}
             >
               <Key className="w-4 h-4" /> Gemini 3.1 AI
@@ -1042,70 +1172,63 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             <button
               type="button"
               onClick={() => setOcrEngine('local')}
-              className={`p-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
-                ocrEngine === 'local' ? 'bg-blue-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-700'
+              className={`p-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all ${
+                ocrEngine === 'local' ? 'bg-slate-800 text-white shadow-md' : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-100'
               }`}
             >
-              <FileText className="w-4 h-4" /> Local OCR
+              <FileText className="w-4 h-4" /> Local OCR (Fallback)
             </button>
           </div>
 
           {ocrEngine === 'ai' && (
-            <div className="pt-2">
+            <div className="pt-2 space-y-3">
               <input
                 type="password"
-                placeholder="Enter your Gemini API Key..."
+                placeholder="Paste your Gemini API Key here..."
                 value={userApiKey}
                 onChange={(e) => setUserApiKey(e.target.value)}
-                className="w-full text-xs bg-white border border-slate-300 rounded-lg p-2 focus:ring-2 focus:ring-blue-500 outline-none mb-1"
+                className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
               />
-              <div className="mt-2 text-[10px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200 flex items-start gap-1.5">
-                <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5 text-amber-500" />
-                <p><strong>Note:</strong> A VPN (connected outside Hong Kong) is required for Google Gemini AI to function. If the API fails, the app will automatically fall back to Local OCR, which lacks automatic answer separation.</p>
+              <div className="text-xs text-rose-800 bg-rose-50/80 p-3 rounded-xl border border-rose-200 flex items-start gap-2 shadow-sm">
+                <Globe2 className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
+                <p className="leading-relaxed"><strong>VPN Required:</strong> Google Gemini AI is restricted in HK. Connect a VPN (outside HK) or the AI request will fail and fall back to local OCR.</p>
               </div>
             </div>
           )}
         </div>
 
-        <div className="space-y-3">
-          <div className="flex gap-4 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span className="text-xs font-bold text-slate-700">Question Format:</span>
-            <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
-              <input
-                type="radio"
-                name="qtype"
-                value="MC"
-                checked={questionType === 'MC'}
-                onChange={() => setQuestionType('MC')}
-                className="text-blue-600"
-              />
+        <div className="space-y-4">
+          <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">2. Question Capture</label>
+          <div className="flex gap-4 items-center bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm w-fit">
+            <button
+              type="button"
+              onClick={() => setQuestionType('MC')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${questionType === 'MC' ? 'bg-indigo-100 text-indigo-800' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
               Multiple Choice (MC)
-            </label>
-            <label className="flex items-center gap-1.5 text-xs font-medium cursor-pointer">
-              <input
-                type="radio"
-                name="qtype"
-                value="LQ"
-                checked={questionType === 'LQ'}
-                onChange={() => setQuestionType('LQ')}
-                className="text-blue-600"
-              />
+            </button>
+            <button
+              type="button"
+              onClick={() => setQuestionType('LQ')}
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${questionType === 'LQ' ? 'bg-purple-100 text-purple-800' : 'text-slate-500 hover:bg-slate-50'}`}
+            >
               Long Question (LQ)
-            </label>
+            </button>
           </div>
 
           {!imagePreview ? (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-blue-300 bg-blue-50/50 hover:bg-blue-50 rounded-2xl p-8 text-center cursor-pointer transition flex flex-col items-center"
+              className="border-2 border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl p-10 text-center cursor-pointer transition-all flex flex-col items-center group"
             >
-              <div className="p-3 bg-white rounded-full shadow-sm mb-2">
-                <Camera className="w-6 h-6 text-blue-600" />
+              <div className="p-4 bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 transition-transform">
+                <Camera className="w-8 h-8 text-indigo-500" />
               </div>
-              <h3 className="font-bold text-slate-800 text-sm">Take Photo / Upload Image</h3>
+              <h3 className="font-extrabold text-indigo-900 text-sm">Take Photo / Upload Image</h3>
+              <p className="text-xs text-indigo-500 mt-2 font-medium">Capture the question block clearly.</p>
             </div>
           ) : (
-            <div className="relative rounded-xl overflow-hidden bg-slate-900 h-44 border border-slate-200">
+            <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-64 border border-slate-200 shadow-inner group">
               <img src={imagePreview} alt="Target" className="w-full h-full object-contain" />
               <button
                 onClick={() => {
@@ -1113,7 +1236,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                   setImagePreview(null);
                   setAttachedImage(null);
                 }}
-                className="absolute top-2 right-2 bg-slate-900/80 text-white p-1 rounded-full hover:bg-black"
+                className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1123,9 +1246,9 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
           {imagePreview && status !== 'scanning' && (
              <button
                 onClick={handleRunOCR}
-                className="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
+                className="w-full py-3.5 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 transition-all active:scale-[0.99]"
               >
-                <RefreshCw className="w-4 h-4" /> Extract Text from Image
+                <RefreshCw className="w-4 h-4" /> Run Intelligent Extraction
               </button>
           )}
 
@@ -1139,19 +1262,21 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         </div>
 
         {status === 'scanning' ? (
-          <div className="flex flex-col items-center justify-center p-6 space-y-2">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <p className="text-xs text-slate-600 font-medium">Extracting & Categorizing Text...</p>
+          <div className="flex flex-col items-center justify-center p-10 space-y-4 bg-slate-50 rounded-3xl border border-slate-100">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+            <p className="text-sm text-slate-600 font-bold">Extracting & Analyzing Content...</p>
           </div>
         ) : (
-          <div className="space-y-4 pt-2 border-t border-slate-100">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-6 pt-6 border-t border-slate-200">
+            <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">3. Review & Save</label>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Subject</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Subject</label>
                 <select
                   value={subjectKey}
                   onChange={handleSubjectChange}
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                 >
                   {Object.keys(HKDSE_SYLLABUS).map(k => (
                     <option key={k} value={k}>{HKDSE_SYLLABUS[k].name}</option>
@@ -1160,11 +1285,11 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               </div>
 
               <div>
-                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Sub-topic</label>
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Sub-topic</label>
                 <select
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
                 >
                   {HKDSE_SYLLABUS[subjectKey].topics.map((t, i) => (
                     <option key={i} value={t}>{t}</option>
@@ -1174,51 +1299,51 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             </div>
 
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Question Source</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Question Source</label>
               <input
                 type="text"
                 placeholder="e.g. 2022 DSE Paper 1 Q14"
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
               />
             </div>
 
             <div>
-              <div className="flex justify-between items-center mb-1">
+              <div className="flex justify-between items-center mb-2">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Question Body <span className="text-red-500 text-xs">*</span>
+                  Question Body <span className="text-rose-500 text-sm">*</span>
                 </label>
                 {questionType === 'MC' && questionText && (
                   <button
                     type="button"
                     onClick={handleAutoSplitOptions}
-                    className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1.5 bg-indigo-50 px-2.5 py-1 rounded-lg transition-colors"
                   >
-                    <Wand2 className="w-3.5 h-3.5" /> Auto-Split A/B/C/D Options
+                    <Wand2 className="w-3.5 h-3.5" /> Auto-Split Options
                   </button>
                 )}
               </div>
               <textarea
-                rows={4}
+                rows={5}
                 value={questionText}
                 required
                 onChange={(e) => setQuestionText(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all resize-y"
               />
             </div>
 
             {questionType === 'MC' && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50/80 p-4 rounded-2xl border border-slate-200">
                 {['A', 'B', 'C', 'D'].map(l => (
-                  <div key={l} className="flex items-center gap-2">
-                    <span className="font-bold text-xs text-blue-600 w-3">{l}</span>
+                  <div key={l} className="flex items-center gap-3">
+                    <span className="font-extrabold text-sm text-indigo-600 bg-white shadow-sm border border-indigo-100 w-8 h-8 flex items-center justify-center rounded-lg">{l}</span>
                     <input
                       type="text"
                       placeholder={`Option ${l}`}
                       value={options[l] || ''}
                       onChange={(e) => setOptions({ ...options, [l]: e.target.value })}
-                      className="flex-1 bg-white border border-slate-300 text-slate-800 text-xs rounded-lg p-2 outline-none focus:ring-2 focus:ring-blue-500"
+                      className="flex-1 bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-xl p-2.5 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
                     />
                   </div>
                 ))}
@@ -1226,36 +1351,35 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             )}
 
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Answer / Solution</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Marking Scheme / Answer</label>
               <textarea
-                rows={2}
+                rows={3}
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 outline-none focus:ring-2 focus:ring-emerald-500"
+                className="w-full bg-emerald-50/50 border border-emerald-200 text-emerald-900 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all resize-y"
               />
             </div>
 
-            {/* Added Remarks Field */}
             <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Remarks / Notes</label>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Remarks / Notes</label>
               <textarea
                 rows={2}
-                placeholder="e.g. Remember the formula for this..."
+                placeholder="e.g. Remember to check units, use formula X..."
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 text-slate-800 text-xs rounded-xl p-3 outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full bg-amber-50/50 border border-amber-200 text-amber-900 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all resize-y"
               />
             </div>
 
             <button
               onClick={handleSaveQuestion}
               disabled={status === 'saving' || !questionText.trim()}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
+              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-[0.99]"
             >
               {status === 'saving' ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Saving Question...</>
+                <><Loader2 className="w-5 h-5 animate-spin" /> Saving Question...</>
               ) : (
-                <><CheckCircle2 className="w-4 h-4" /> Save Question</>
+                <><CheckCircle2 className="w-5 h-5" /> Save to Revision Hub</>
               )}
             </button>
           </div>
