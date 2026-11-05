@@ -3,7 +3,10 @@ import { initializeApp } from 'firebase/app';
 import {
   getAuth,
   signInAnonymously,
+  signInWithCustomToken,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
   signOut
 } from 'firebase/auth';
 import {
@@ -43,27 +46,6 @@ import {
   Pencil,
   RefreshCw
 } from 'lucide-react';
-
-// Safe Firebase Initializer
-let app, auth, db, appId = 'hkdse-app-4a594';
-
-try {
-  const firebaseConfig = {
-    apiKey: "AIzaSyAu97M1DGExntXKVLdlZtX2DXIGs2zsnVA",
-    authDomain: "hkdse-app-4a594.firebaseapp.com",
-    projectId: "hkdse-app-4a594",
-    storageBucket: "hkdse-app-4a594.firebasestorage.app",
-    messagingSenderId: "14854715570",
-    appId: "1:14854715570:web:70fe20509bf6574ae9b1ab",
-    measurementId: "G-5QRG5JR0WB"
-  };
-  
-  app = initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-} catch (e) {
-  console.warn("Firebase Setup Warning:", e);
-}
 
 // --- STRICT HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
@@ -190,13 +172,22 @@ const HKDSE_SYLLABUS = {
 };
 
 // Safe Firebase Initializer
-let app, auth, db, appId;
+let app, auth, db, appId = 'hkdse-app-4a594';
+
 try {
-  const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
+  const firebaseConfig = {
+    apiKey: "AIzaSyAu97M1DGExntXKVLdlZtX2DXIGs2zsnVA",
+    authDomain: "hkdse-app-4a594.firebaseapp.com",
+    projectId: "hkdse-app-4a594",
+    storageBucket: "hkdse-app-4a594.firebasestorage.app",
+    messagingSenderId: "14854715570",
+    appId: "1:14854715570:web:70fe20509bf6574ae9b1ab",
+    measurementId: "G-5QRG5JR0WB"
+  };
+  
   app = initializeApp(firebaseConfig);
   auth = getAuth(app);
   db = getFirestore(app);
-  appId = typeof __app_id !== 'undefined' ? __app_id : 'hkdse-app';
 } catch (e) {
   console.warn("Firebase Setup Warning:", e);
 }
@@ -252,8 +243,8 @@ const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preEx
     throw new Error('API key is missing. Please provide a Gemini API Key or use Local OCR.');
   }
 
-  // FIX: Use the actual, stable high-speed multimodal model.
-  const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${effectiveKey}`;
+  // Updated to Gemini 3.1 Flash Lite endpoint
+  const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
 
   const prompt = questionType === 'MC' 
     ? `Analyze this HKDSE Multiple Choice (MC) question image and its pre-extracted raw text below.
@@ -264,9 +255,9 @@ TASK & CATEGORIZATION RULES:
    - "question": Clean PRINTED question text only.
    - "options": An object containing options A, B, C, D.
    - "answer": Identify the correct answer letter and explain why based on visual markings:
-     - RULE 1: Untouched handwritten answer $\\rightarrow$ CORRECT.
-     - RULE 2: Crossed out (X) text replaced with another color $\\rightarrow$ NEW COLOR IS CORRECT.
-     - RULE 3: Tick (✓) or circled letter $\\rightarrow$ CORRECT.`
+     - RULE 1: Untouched handwritten answer -> CORRECT.
+     - RULE 2: Crossed out (X) text replaced with another color -> NEW COLOR IS CORRECT.
+     - RULE 3: Tick (✓) or circled letter -> CORRECT.`
     : `Analyze this HKDSE Long Question (LQ) image and its pre-extracted raw text below.
 ${preExtractedText ? `PRE-EXTRACTED RAW TEXT FROM OCR:\n"${preExtractedText}"\n` : ''}
 
@@ -486,13 +477,14 @@ export default function App() {
       setLoadingAuth(false);
       return;
     }
+
     const setupAuth = async () => {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
+        if (!auth.currentUser) {
+          await signInAnonymously(auth);
         }
       } catch (err) {
-        console.error("Auth Init Error:", err);
+        console.warn("Anonymous auth init warning:", err);
       }
     };
     setupAuth();
