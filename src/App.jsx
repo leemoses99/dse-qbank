@@ -43,7 +43,8 @@ import {
   Info,
   Globe2,
   Sparkles,
-  Clock
+  Clock,
+  Image as ImageIcon
 } from 'lucide-react';
 
 // --- HKDSE SYLLABUS DATA STRUCTURE (Alphabetical Order) ---
@@ -212,7 +213,7 @@ const runLocalOCR = async (imageFile) => {
   return result?.data?.text || '';
 };
 
-// Gemini 3.1 Flash Lite OCR
+// Gemini 3.1 Flash Lite OCR (Hardened Prompt for messy OCR text)
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
   const effectiveKey = apiKey || '';
   if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
@@ -997,11 +998,11 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
     setErrorText('');
+    setIncludeImage(true); // Default to true when a new image is picked
 
     try {
       const compressedDataUrl = await compressImage(file);
       setAttachedImage(compressedDataUrl);
-      setIncludeImage(true);
     } catch (compErr) {
       console.warn("Could not compress image:", compErr);
     }
@@ -1113,13 +1114,13 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         answerText: answerText.trim(),
         options: questionType === 'MC' ? options : null,
         remarks: remarks.trim(),
+        // Check the toggle to determine whether to save the image
         attachedImage: includeImage ? attachedImage : null,
         status: editData ? editData.status || 'unmarked' : 'unmarked' 
       };
 
       if (editData && editData.id) {
         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'questions', editData.id);
-        // Retain original createdAt timestamp when updating
         await updateDoc(docRef, { ...questionData, updatedAt: new Date().toISOString() });
       } else {
         const qRef = collection(db, 'artifacts', appId, 'users', user.uid, 'questions');
@@ -1235,6 +1236,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                   setImageFile(null);
                   setImagePreview(null);
                   setAttachedImage(null);
+                  setIncludeImage(true);
                 }}
                 className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors"
               >
@@ -1370,6 +1372,23 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 className="w-full bg-amber-50/50 border border-amber-200 text-amber-900 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all resize-y"
               />
             </div>
+
+            {/* KEEP IMAGE TOGGLE */}
+            {attachedImage && (
+              <div className="flex items-center gap-3 bg-indigo-50/50 p-4 rounded-xl border border-indigo-100 mt-2">
+                 <input
+                   type="checkbox"
+                   id="includeImageCheck"
+                   checked={includeImage}
+                   onChange={(e) => setIncludeImage(e.target.checked)}
+                   className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
+                 />
+                 <label htmlFor="includeImageCheck" className="text-sm font-bold text-indigo-900 flex-1 cursor-pointer select-none">
+                   Save original image to database (Recommended for Diagrams)
+                 </label>
+                 <ImageIcon className="w-5 h-5 text-indigo-400" />
+              </div>
+            )}
 
             <button
               onClick={handleSaveQuestion}
