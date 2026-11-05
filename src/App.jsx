@@ -40,7 +40,7 @@ import {
   Wand2
 } from 'lucide-react';
 
-// --- HKDSE SYLLABUS STRUCTURE ---
+// --- HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
   "physics": {
     name: "Physics",
@@ -185,12 +185,11 @@ try {
   console.warn("Firebase Setup Warning:", e);
 }
 
-// Helper: Smart Regex Option Extractor
+// Regex Option Extractor Fallback
 const extractOptionsFromText = (rawText) => {
   if (!rawText) return { cleanQuestion: '', options: null };
 
   const text = rawText.trim();
-  // Regex pattern matching A., B., C., D. or A), B), C), D) or (A), (B), (C), (D)
   const optionRegex = /(?:^|\n|\s)(?:\(?([A-D])[\.\)]\s*)([\s\S]*?)(?=(?:^|\n|\s)\(?[A-D][\.\)]\s*|$)/gi;
   const matches = [...text.matchAll(optionRegex)];
 
@@ -204,7 +203,6 @@ const extractOptionsFromText = (rawText) => {
       }
     });
 
-    // Extract everything before the first option letter as clean question text
     const firstOptIdx = text.search(/(?:^|\n|\s)\(?[A-D][\.\)]\s*/i);
     const cleanQuestion = firstOptIdx !== -1 ? text.substring(0, firstOptIdx).trim() : text;
 
@@ -214,7 +212,7 @@ const extractOptionsFromText = (rawText) => {
   return { cleanQuestion: text, options: null };
 };
 
-// Compress image for Firestore
+// Image Compression
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -240,7 +238,7 @@ const compressImage = (file) => {
   });
 };
 
-// Local Tesseract OCR
+// Tesseract Local OCR
 const runLocalOCR = async (imageFile) => {
   if (!window.Tesseract) {
     await new Promise((resolve, reject) => {
@@ -257,23 +255,25 @@ const runLocalOCR = async (imageFile) => {
   return result?.data?.text || '';
 };
 
-// Gemini 3.1 Flash Lite OCR Engine
+// Gemini 3.1 Flash Lite OCR Recognition Function
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
   const effectiveKey = apiKey || '';
   if (!effectiveKey) {
     throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
   }
 
+  // Enforce gemini-3.1-flash-lite endpoint
   const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
 
-  const prompt = `Analyze this HKDSE exam question image and raw OCR context below:
-"${preExtractedText}"
+  const prompt = `You are an expert HKDSE exam question analyzer. 
+Analyze the question image and pre-extracted OCR text below:
+${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
 
-TASKS:
-1. Detect Subject (Must be one of: "Physics", "Chemistry", "Economics", "Math Compulsory", "M2").
-2. For Question Body: Extract ONLY the main printed question text. EXCLUDE options A, B, C, D from the question string.
-3. For Options: Put option choice texts directly into A, B, C, and D keys.
-4. For Answer: Extract the correct option letter (A, B, C, or D) or solution explanation.`;
+CRITICAL RULES:
+1. "subject": Auto-detect subject ("Physics", "Chemistry", "Economics", "Math Compulsory", or "M2").
+2. "question": Extract ONLY the main question body text. DO NOT include choice options A, B, C, D in the question string.
+3. "options": Map the exact text for choices A, B, C, and D into their respective keys.
+4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.`;
 
   const parts = [{ text: prompt }];
   if (base64Image) {
@@ -333,7 +333,7 @@ TASKS:
   }
 };
 
-// --- AUTHENTICATION COMPONENT ---
+// --- AUTHENTICATION VIEW ---
 function AuthView({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -458,7 +458,6 @@ export default function App() {
 
   const activeUser = user || localAccount;
 
-  // Save API key to user profile in Firestore
   useEffect(() => {
     if (userApiKey && activeUser && db && hasPassedAuthScreen) {
       const userRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'settings', 'profile');
@@ -504,7 +503,6 @@ export default function App() {
     return () => unsub();
   }, []);
 
-  // Realtime Database Listener
   useEffect(() => {
     if (!activeUser || !db || !hasPassedAuthScreen) return;
     const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
@@ -884,7 +882,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   }, [editData]);
 
-  // Quick Action: Smart-split A/B/C/D from question body
   const handleAutoSplitOptions = () => {
     if (!questionText) return;
     const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(questionText);
@@ -928,12 +925,9 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     try {
       if (ocrEngine === 'local') {
         const localExtractedText = await runLocalOCR(attachedImage || imageFile);
-        
-        // Auto-split options using regex
         const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(localExtractedText);
         setQuestionText(cleanQuestion);
         if (parsedOpts) setOptions(parsedOpts);
-
         setStatus('idle');
       } else {
         const [localExtractedText, imagePayload] = await Promise.all([
@@ -960,9 +954,9 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         ]);
 
         try {
+          // Pass pre-extracted text + image payload to Gemini 3.1 Flash Lite
           const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, userApiKey, localExtractedText);
           
-          // 1. Auto-detect & switch Subject
           if (aiData.subject) {
             const detectedSub = String(aiData.subject).toLowerCase();
             const matchingKey = Object.keys(HKDSE_SYLLABUS).find(k => 
@@ -974,11 +968,8 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             }
           }
 
-          // 2. Set Question Body & Answer
-          let rawQ = aiData.question ? String(aiData.question) : localExtractedText;
-          if (aiData.answer) setAnswerText(String(aiData.answer));
-
-          // 3. Set Options (or fallback regex split)
+          if (aiData.question) setQuestionText(typeof aiData.question === 'object' ? JSON.stringify(aiData.question) : String(aiData.question));
+          if (aiData.answer) setAnswerText(typeof aiData.answer === 'object' ? JSON.stringify(aiData.answer) : String(aiData.answer));
           if (aiData.options && typeof aiData.options === 'object') {
             setOptions({
               A: String(aiData.options.A || ''),
@@ -986,27 +977,24 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               C: String(aiData.options.C || ''),
               D: String(aiData.options.D || '')
             });
-            setQuestionText(rawQ);
           } else {
-            const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(rawQ);
+            const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(aiData.question || localExtractedText);
             setQuestionText(cleanQuestion);
             if (parsedOpts) setOptions(parsedOpts);
           }
-
           setStatus('idle');
         } catch (aiErr) {
-          console.warn("Gemini Flash Lite AI notice, using Regex Auto-Split fallback:", aiErr);
+          console.warn("AI Structure Analysis failed, falling back to raw local text:", aiErr);
           const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(localExtractedText);
-          setQuestionText(cleanQuestion);
+          setQuestionText(cleanQuestion || (prev => (prev ? prev + '\n' : '') + (localExtractedText || '')));
           if (parsedOpts) setOptions(parsedOpts);
-
-          setErrorText(`AI OCR Notice: ${aiErr.message}. Local OCR + Auto-Split executed.`);
+          setErrorText(`AI API Error: ${aiErr.message}. Used Free Local OCR text instead.`);
           setStatus('idle');
         }
       }
     } catch (err) {
       console.error("Scanning Error:", err);
-      setErrorText(err.message || 'Image scan failed.');
+      setErrorText(err.message || 'Image scan failed. You can manually type the question details.');
       setStatus('idle');
     }
   };
@@ -1017,7 +1005,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       return;
     }
     if (!user || !db) {
-      setErrorText('Cloud database connection not found.');
+      setErrorText('Cloud connection or user session not found.');
       return;
     }
 
@@ -1054,7 +1042,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       onSaved();
     } catch (err) {
       console.error("Save Error:", err);
-      setErrorText('Could not save question to database.');
+      setErrorText('Could not save question to cloud database. Check your network.');
       setStatus('idle');
     }
   };
@@ -1175,7 +1163,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 onClick={handleRunOCR}
                 className="w-full py-2.5 mt-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs flex items-center justify-center gap-2 shadow-sm transition"
               >
-                <RefreshCw className="w-4 h-4" /> Extract Text from Image (OCR)
+                <RefreshCw className="w-4 h-4" /> Extract Text from Image (Gemini 3.1 Flash Lite)
               </button>
           )}
 
@@ -1191,7 +1179,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         {status === 'scanning' ? (
           <div className="flex flex-col items-center justify-center p-6 space-y-2">
             <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <p className="text-xs text-slate-600 font-medium">Categorizing Question & Options...</p>
+            <p className="text-xs text-slate-600 font-medium">Extracting & Categorizing via Gemini 3.1 Flash Lite...</p>
           </div>
         ) : (
           <div className="space-y-4 pt-2 border-t border-slate-100">
@@ -1242,7 +1230,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                     type="button"
                     onClick={handleAutoSplitOptions}
                     className="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition"
-                    title="Extract A, B, C, D choices from the text automatically"
                   >
                     <Wand2 className="w-3.5 h-3.5" /> Auto-Split A/B/C/D Options
                   </button>
