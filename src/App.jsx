@@ -63,7 +63,6 @@ import {
   Download,
   Users
 } from 'lucide-react'
-};
 
 // --- MOTIVATIONAL QUOTES ---
 const MOTIVATIONAL_QUOTES = [
