@@ -244,10 +244,11 @@ ${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
 
 CRITICAL RULES:
 1. "subject": Auto-detect subject ("Biology", "Chemistry", "Economics", "M1", "M2", "Math Compulsory", or "Physics").
-2. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
-3. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D.
-4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.
-5. "difficulty": Estimate question difficulty on a scale from 1 to 5 (1 = Very Easy, 2 = Easy, 3 = Moderate, 4 = Hard, 5 = Extremely Challenging DSE level). Return an integer between 1 and 5.`;
+2. "topic": Auto-detect the relevant HKDSE sub-topic for the question based on standard HKDSE curriculum topics.
+3. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
+4. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D.
+5. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.
+6. "difficulty": Estimate question difficulty on a scale from 1 to 5 (1 = Very Easy, 2 = Easy, 3 = Moderate, 4 = Hard, 5 = Extremely Challenging DSE level). Return an integer between 1 and 5.`;
 
   const parts = [{ text: prompt }];
   if (base64Image) {
@@ -258,6 +259,7 @@ CRITICAL RULES:
     type: "OBJECT",
     properties: {
       subject: { type: "STRING" },
+      topic: { type: "STRING" },
       question: { type: "STRING" },
       options: {
         type: "OBJECT",
@@ -770,7 +772,7 @@ function AuthView({ onLoginSuccess }) {
                <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
                  <li><strong>Paste Clipboard Images:</strong> Press <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Ctrl+V</code> or <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Cmd+V</code> anywhere on screen to paste images directly.</li>
                  <li><strong>Question Difficulty:</strong> Rate question difficulty from 1 to 5 stars manually or let AI estimate it automatically.</li>
-                 <li><strong>AI OCR Extraction:</strong> Auto extracts questions, MC options, and subjects.</li>
+                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic.</li>
                  <li><strong>Progress Tracking:</strong> Tag questions with Tick or Cross for revision.</li>
                </ul>
              </div>
@@ -1490,8 +1492,19 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             );
             if (matchingKey) {
               setSubjectKey(matchingKey);
-              setTopic(HKDSE_SYLLABUS[matchingKey].topics[0]);
+              const availableTopics = HKDSE_SYLLABUS[matchingKey].topics;
+              if (aiData.topic) {
+                const matchedTopic = availableTopics.find(t => 
+                  t.toLowerCase().includes(String(aiData.topic).toLowerCase()) ||
+                  String(aiData.topic).toLowerCase().includes(t.toLowerCase())
+                ) || aiData.topic;
+                setTopic(matchedTopic);
+              } else {
+                setTopic(availableTopics[0]);
+              }
             }
+          } else if (aiData.topic) {
+            setTopic(String(aiData.topic));
           }
 
           if (aiData.question) setQuestionText(typeof aiData.question === 'object' ? JSON.stringify(aiData.question) : String(aiData.question));
@@ -1677,9 +1690,9 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
                 </div>
               )}
 
-              <div className="text-xs text-rose-800 bg-rose-50/80 p-3 rounded-xl border border-rose-200 flex items-start gap-2 shadow-sm">
-                <Globe2 className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
-                <p className="leading-relaxed"><strong>VPN Required:</strong> Google Gemini AI is restricted in HK. Connect a VPN (outside HK) or the AI request will fail and fall back to local OCR.</p>
+              <div className="text-xs text-emerald-800 bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 flex items-start gap-2 shadow-sm">
+                <Globe2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
+                <p className="leading-relaxed"><strong>No VPN Required:</strong> Requests are routed via the US proxy server. Gemini AI functions seamlessly in Hong Kong.</p>
               </div>
             </div>
           )}
@@ -1791,7 +1804,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         {status === 'scanning' ? (
           <div className="flex flex-col items-center justify-center p-10 space-y-4 bg-slate-50 rounded-3xl border border-slate-100">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            <p className="text-sm text-slate-600 font-bold">Extracting Content & Estimating Difficulty...</p>
+            <p className="text-sm text-slate-600 font-bold">Extracting Content, Subject, Sub-topic & Difficulty...</p>
           </div>
         ) : (
           <div className="space-y-6 pt-6 border-t border-slate-200">
