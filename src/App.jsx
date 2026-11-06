@@ -15,8 +15,6 @@ import {
   onSnapshot,
   deleteDoc,
   doc,
-  setDoc,
-  getDoc,
   updateDoc,
   collectionGroup,
   query,
@@ -25,43 +23,11 @@ import {
   limit
 } from 'firebase/firestore';
 import { 
-  Camera, 
-  BookOpen, 
-  Plus, 
-  X, 
-  Loader2, 
-  Library,
-  Trash2,
-  ChevronDown,
-  Key,
-  FileText,
-  CheckCircle2,
-  CheckCircle,
-  XCircle,
-  Eye,
-  EyeOff,
-  LogOut,
-  Pencil,
-  RefreshCw,
-  Wand2,
-  AlertCircle,
-  Info,
-  Sparkles,
-  Clock,
-  Image as ImageIcon,
-  RotateCcw,
-  RotateCw,
-  Crop,
-  ShieldCheck,
-  Star,
-  Clipboard,
-  Zap,
-  ArrowLeft,
-  ArrowRight,
-  Quote,
-  Globe,
-  Download,
-  Users
+  BookOpen, Plus, XCircle, Loader2, Library, Trash2, ChevronDown, 
+  CheckCircle2, CheckCircle, Eye, EyeOff, LogOut, Pencil, AlertCircle, Info, 
+  Sparkles, Clock, RotateCcw, RotateCw, Star, Zap, ArrowLeft, ArrowRight, 
+  Quote, Globe, Download, Users, UserCircle, BarChart3, Settings, Camera, Key, FileText,
+  Clipboard, Crop, Image as ImageIcon, X, RefreshCw
 } from 'lucide-react';
 
 // --- MOTIVATIONAL QUOTES ---
@@ -75,90 +41,33 @@ const MOTIVATIONAL_QUOTES = [
   "Your future is created by what you do today, not tomorrow.",
   "Strive for progress, not perfection.",
   "A little progress each day adds up to big results.",
-  "The only bad workout is the one that didn't happen. The only bad study session is the one you skipped."
+  "The only bad workout is the one that didn't happen. The only bad study session is the one you skipped.",
+  "Believe you can and you're halfway there.",
+  "Failure is the opportunity to begin again more intelligently.",
+  "You don't have to be great to start, but you have to start to be great.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "Doubt kills more dreams than failure ever will.",
+  "Education is the most powerful weapon which you can use to change the world.",
+  "The beautiful thing about learning is that no one can take it away from you.",
+  "There are no shortcuts to any place worth going.",
+  "Genius is 1% inspiration, 99% perspiration.",
+  "Don't let what you cannot do interfere with what you can do.",
+  "The future belongs to those who believe in the beauty of their dreams.",
+  "Focus on your goal. Don't look in any direction but ahead.",
+  "A river cuts through rock not because of its power, but because of its persistence.",
+  "Keep going. Everything you need will come to you at the perfect time.",
+  "Do something today that your future self will thank you for."
 ];
 
 // --- HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
-  "biology": {
-    name: "Biology",
-    topics: [
-      "Topic 1 Cell and membrane transport", "Topic 2 Enzymes", "Topic 3 Nutrition in humans", 
-      "Topic 4 Gas exchange in humans", "Topic 5 Transport in humans", "Topic 6 Nutrition and gas exchange in plants", 
-      "Topic 7 Transpiration, transport and support in plants", "Topic 8 Cell division and reproduction", 
-      "Topic 9 Growth and development", "Topic 10 Growth responses of plants", "Topic 11 Coordination in humans", 
-      "Topic 12 Movement in humans", "Topic 13 Homeostasis", "Topic 14 Biodiversity", "Topic 15 Ecosystems", 
-      "Topic 16 Photosynthesis", "Topic 17 Respiration", "Topic 18 Health and diseases", 
-      "Topic 19 Basic genetics, Molecular and applied genetics", "Topic 20 Evolution", 
-      "Elective 1 Human Physiology", "Elective 2 Applied Ecology", "Elective 3 Biotechnology"
-    ]
-  },
-  "chemistry": {
-    name: "Chemistry",
-    topics: [
-      "Topic 1 Laboratory Safety and Precautions", "Topic 2 Planet Earth", "Topic 3 Microscopic World", 
-      "Topic 4 Metals", "Topic 5 Acid and Bases", "Topic 6 Fossil fuels and Carbon Compounds", 
-      "Topic 7 Microscopic World II", "Topic 8 Redox Reactions, Chemical Cells and Electrolysis", 
-      "Topic 9 Chemical Reactions and Energy", "Topic 10 Rate of Reaction", "Topic 11 Chemical Equilibrium", 
-      "Topic 12 Chemistry of Carbon Compounds", "Topic 13 Patterns in the Chemical World", 
-      "E1 Industrial Chemistry", "E2 Analytical Chemistry"
-    ]
-  },
-  "economics": {
-    name: "Economics",
-    topics: [
-      "Topic 1 Basic Concept", "Topic 2 Production", "Topic 3 Input-Output Relationship", 
-      "Topic 4 Ownership And Expansion Of Firms", "Topic 5 Market Structure", "Topic 6 Demand And Supply I", 
-      "Topic 7 Demand And Supply II", "Topic 8 Market Intervention", "Topic 9 Roles Of Government", 
-      "Topic 10 National Income", "Topic 11 Macroeconomics Problems", "Topic 12 The Budget And Fiscal Policy", 
-      "Topic 13 Money And Banking I", "Topic 14 Money And Banking II", "Topic 15 Aggregate Demand And Aggregate Supply", 
-      "Topic 16 International Trade", "Topic 17 International Finance", "Elective 2: Extension of Trade Theory And Economic Development"
-    ]
-  },
-  "m1": {
-    name: "M1",
-    topics: [
-      "Topic 1 Binomial Expansion", "Topic 2 Exponential and Logarithmic Functions", 
-      "Topic 3 Derivatives and Differentiation of Functions", "Topic 4 Applications of Differentiation", 
-      "Topic 5 Indefinite Integrals", "Topic 6 Definite Integrals", "Topic 7 Further Probability", 
-      "Topic 8 Discrete Random Variables", "Topic 9 Binomial, Geometric and Poisson Distributions", 
-      "Topic 10 Normal Distribution", "Topic 11 Point and Interval Estimation"
-    ]
-  },
-  "m2": {
-    name: "M2",
-    topics: [
-      "Topic 1 Mathematical Induction", "Topic 2 Binomial Theorem", "Topic 3 More about Trigonometric Functions", 
-      "Topic 4 Limits and Derivatives", "Topic 5 Differentiation", "Topic 6 Applications of differentiation", 
-      "Topic 7 Indefinite Integrals", "Topic 8 Definite Integrals", "Topic 9 Applications of Definite Integrals", 
-      "Topic 10 Matrices and Determinants", "Topic 11 System of Linear Equations", "Topic 12 Vectors", "Topic 13 Product of Vectors"
-    ]
-  },
-  "math compulsory": {
-    name: "Math Compulsory",
-    topics: [
-      "Topic 1 Estimation", "Topic 2 Percentages", "Topic 3 Indices and Logarithms", "Topic 4 Polynomials", 
-      "Topic 5 Formulas", "Topic 6 Identities, Equations and the Number System", "Topic 7 Functions and Graphs", 
-      "Topic 8 Rate, Ratio and Variation", "Topic 9 Arithmetic and Geometric Sequences", "Topic 10 Inequalities and Linear Programming", 
-      "Topic 11 Geometry of Rectilinear Figure", "Topic 12 Geometry of Circles", "Topic 13 Basic Trigonometry", 
-      "Topic 14 Applications of Trigonometry", "Topic 15 Mensuration", "Topic 16 Coordinate Geometry", 
-      "Topic 17 Counting Principles and Probability", "Topic 18 Statistics"
-    ]
-  },
-  "physics": {
-    name: "Physics",
-    topics: [
-      "Topic 1 Temperature, Heat and Internal energy", "Topic 2 Transfer Processes", "Topic 3 Change of State", 
-      "Topic 4 General Gas Law", "Topic 5 Kinetic Theory", "Topic 6 Position and Movement", "Topic 7 Newton's Laws", 
-      "Topic 8 Moment of Force", "Topic 9 Work, Energy and Power", "Topic 10 Momentum", "Topic 11 Projectile Motion", 
-      "Topic 12 Circular Motion", "Topic 13 Gravitation", "Topic 14 Wave Propagation", "Topic 15 Wave Phenomena", 
-      "Topic 16 Reflection and Refraction of Light", "Topic 17 Lenses", "Topic 18 Wave Nature of Light", "Topic 19 Sound", 
-      "Topic 20 Electrostatics", "Topic 21 Electric Circuits", "Topic 22 Domestic Electricity", "Topic 23 Magnetic Field", 
-      "Topic 24 Electromagnetic Induction", "Topic 25 Alternating Current", "Topic 26 Radiation and Radioactivity", 
-      "Topic 27 Atomic Model", "Topic 28 Nuclear Energy", "Elective 1 Astronomy and Space Science", 
-      "Elective 2 Atomic World", "Elective 3 Energy and Use of Energy"
-    ]
-  }
+  "biology": { name: "Biology", topics: ["Topic 1 Cell and membrane transport", "Topic 2 Enzymes", "Topic 3 Nutrition in humans", "Topic 4 Gas exchange in humans", "Topic 5 Transport in humans", "Topic 6 Nutrition and gas exchange in plants", "Topic 7 Transpiration, transport and support in plants", "Topic 8 Cell division and reproduction", "Topic 9 Growth and development", "Topic 10 Growth responses of plants", "Topic 11 Coordination in humans", "Topic 12 Movement in humans", "Topic 13 Homeostasis", "Topic 14 Biodiversity", "Topic 15 Ecosystems", "Topic 16 Photosynthesis", "Topic 17 Respiration", "Topic 18 Health and diseases", "Topic 19 Basic genetics, Molecular and applied genetics", "Topic 20 Evolution", "Elective 1 Human Physiology", "Elective 2 Applied Ecology", "Elective 3 Biotechnology"] },
+  "chemistry": { name: "Chemistry", topics: ["Topic 1 Laboratory Safety and Precautions", "Topic 2 Planet Earth", "Topic 3 Microscopic World", "Topic 4 Metals", "Topic 5 Acid and Bases", "Topic 6 Fossil fuels and Carbon Compounds", "Topic 7 Microscopic World II", "Topic 8 Redox Reactions, Chemical Cells and Electrolysis", "Topic 9 Chemical Reactions and Energy", "Topic 10 Rate of Reaction", "Topic 11 Chemical Equilibrium", "Topic 12 Chemistry of Carbon Compounds", "Topic 13 Patterns in the Chemical World", "E1 Industrial Chemistry", "E2 Analytical Chemistry"] },
+  "economics": { name: "Economics", topics: ["Topic 1 Basic Concept", "Topic 2 Production", "Topic 3 Input-Output Relationship", "Topic 4 Ownership And Expansion Of Firms", "Topic 5 Market Structure", "Topic 6 Demand And Supply I", "Topic 7 Demand And Supply II", "Topic 8 Market Intervention", "Topic 9 Roles Of Government", "Topic 10 National Income", "Topic 11 Macroeconomics Problems", "Topic 12 The Budget And Fiscal Policy", "Topic 13 Money And Banking I", "Topic 14 Money And Banking II", "Topic 15 Aggregate Demand And Aggregate Supply", "Topic 16 International Trade", "Topic 17 International Finance", "Elective 2: Extension of Trade Theory And Economic Development"] },
+  "m1": { name: "M1", topics: ["Topic 1 Binomial Expansion", "Topic 2 Exponential and Logarithmic Functions", "Topic 3 Derivatives and Differentiation of Functions", "Topic 4 Applications of Differentiation", "Topic 5 Indefinite Integrals", "Topic 6 Definite Integrals", "Topic 7 Further Probability", "Topic 8 Discrete Random Variables", "Topic 9 Binomial, Geometric and Poisson Distributions", "Topic 10 Normal Distribution", "Topic 11 Point and Interval Estimation"] },
+  "m2": { name: "M2", topics: ["Topic 1 Mathematical Induction", "Topic 2 Binomial Theorem", "Topic 3 More about Trigonometric Functions", "Topic 4 Limits and Derivatives", "Topic 5 Differentiation", "Topic 6 Applications of differentiation", "Topic 7 Indefinite Integrals", "Topic 8 Definite Integrals", "Topic 9 Applications of Definite Integrals", "Topic 10 Matrices and Determinants", "Topic 11 System of Linear Equations", "Topic 12 Vectors", "Topic 13 Product of Vectors"] },
+  "math compulsory": { name: "Math Compulsory", topics: ["Topic 1 Estimation", "Topic 2 Percentages", "Topic 3 Indices and Logarithms", "Topic 4 Polynomials", "Topic 5 Formulas", "Topic 6 Identities, Equations and the Number System", "Topic 7 Functions and Graphs", "Topic 8 Rate, Ratio and Variation", "Topic 9 Arithmetic and Geometric Sequences", "Topic 10 Inequalities and Linear Programming", "Topic 11 Geometry of Rectilinear Figure", "Topic 12 Geometry of Circles", "Topic 13 Basic Trigonometry", "Topic 14 Applications of Trigonometry", "Topic 15 Mensuration", "Topic 16 Coordinate Geometry", "Topic 17 Counting Principles and Probability", "Topic 18 Statistics"] },
+  "physics": { name: "Physics", topics: ["Topic 1 Temperature, Heat and Internal energy", "Topic 2 Transfer Processes", "Topic 3 Change of State", "Topic 4 General Gas Law", "Topic 5 Kinetic Theory", "Topic 6 Position and Movement", "Topic 7 Newton's Laws", "Topic 8 Moment of Force", "Topic 9 Work, Energy and Power", "Topic 10 Momentum", "Topic 11 Projectile Motion", "Topic 12 Circular Motion", "Topic 13 Gravitation", "Topic 14 Wave Propagation", "Topic 15 Wave Phenomena", "Topic 16 Reflection and Refraction of Light", "Topic 17 Lenses", "Topic 18 Wave Nature of Light", "Topic 19 Sound", "Topic 20 Electrostatics", "Topic 21 Electric Circuits", "Topic 22 Domestic Electricity", "Topic 23 Magnetic Field", "Topic 24 Electromagnetic Induction", "Topic 25 Alternating Current", "Topic 26 Radiation and Radioactivity", "Topic 27 Atomic Model", "Topic 28 Nuclear Energy", "Elective 1 Astronomy and Space Science", "Elective 2 Atomic World", "Elective 3 Energy and Use of Energy"] }
 };
 
 // --- FIREBASE CONFIGURATION ---
@@ -182,7 +91,6 @@ try {
   console.warn("Firebase Setup Warning:", e);
 }
 
-// Option Extraction
 const extractOptionsFromText = (rawText) => {
   if (!rawText) return { cleanQuestion: '', options: null };
   const text = rawText.trim();
@@ -203,15 +111,6 @@ const extractOptionsFromText = (rawText) => {
   return { cleanQuestion: text, options: null };
 };
 
-// Simple Image Loader Helper
-const createImage = (url) =>
-  new Promise((resolve, reject) => {
-    const image = new Image();
-    image.addEventListener('load', () => resolve(image));
-    image.addEventListener('error', (error) => reject(error));
-    image.src = url;
-});
-
 const rotateBase64Image = (base64, direction = 'cw') => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -220,7 +119,6 @@ const rotateBase64Image = (base64, direction = 'cw') => {
       canvas.width = img.height;
       canvas.height = img.width;
       const ctx = canvas.getContext('2d');
-      
       if (direction === 'cw') {
         ctx.translate(canvas.width, 0);
         ctx.rotate(90 * Math.PI / 180);
@@ -228,7 +126,6 @@ const rotateBase64Image = (base64, direction = 'cw') => {
         ctx.translate(0, canvas.height);
         ctx.rotate(-90 * Math.PI / 180);
       }
-      
       ctx.drawImage(img, 0, 0);
       resolve(canvas.toDataURL('image/jpeg', 0.35));
     };
@@ -236,8 +133,6 @@ const rotateBase64Image = (base64, direction = 'cw') => {
     img.src = base64;
   });
 };
-
-// OCR Engines
 
 const runLocalOCR = async (imageFile) => {
   if (window.Tesseract) {
@@ -252,7 +147,6 @@ const runLocalOCR = async (imageFile) => {
     }
   }
 
-  // Fallback CDNs in case jsDelivr is blocked by ad-blocker or CSP
   const cdns = [
     'https://cdn.jsdelivr.net/npm/tesseract.min.js@5/dist/tesseract.min.js',
     'https://unpkg.com/tesseract.min.js@5/dist/tesseract.min.js',
@@ -278,9 +172,8 @@ const runLocalOCR = async (imageFile) => {
       console.warn(`Could not load OCR CDN from ${src}`);
     }
   }
-  return ''; // Return empty string gracefully if all CDNs fail
+  return '';
 };
-
 
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, preExtractedText = '') => {
   const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini`;
@@ -346,26 +239,32 @@ CRITICAL RULES:
   }
 };
 
-// --- MATH SYMBOL TOOLBAR COMPONENT ---
+// --- ENHANCED MATH SYMBOL TOOLBAR COMPONENT ---
 function MathSymbolToolbar({ onInsert }) {
   const symbols = [
-    { label: '×10ⁿ', value: '×10^' },
-    { label: 'xⁿ', value: '^' },
-    { label: 'xₙ', value: '_' },
+    { label: 'x²', value: '²' },
+    { label: 'x³', value: '³' },
+    { label: 'xⁿ', value: '^n' },
+    { label: 'a/b', value: ' / ' },
+    { label: 'log', value: 'log' },
+    { label: 'logₐ', value: 'log_a()' },
     { label: 'π', value: 'π' },
-    { label: 'θ', value: 'θ' },
-    { label: '√', value: '√' },
-    { label: '±', value: '±' },
-    { label: '≤', value: '≤' },
+    { label: 'e', value: 'e' },
+    { label: '>', value: '>' },
+    { label: '<', value: '<' },
     { label: '≥', value: '≥' },
+    { label: '≤', value: '≤' },
+    { label: '=', value: '=' },
+    { label: 'Σ', value: 'Σ' },
+    { label: '√', value: '√' },
+    { label: 'ⁿ√', value: 'ⁿ√' },
     { label: '°', value: '°' },
-    { label: '×', value: '×' },
-    { label: '÷', value: '÷' },
-    { label: 'Δ', value: 'Δ' },
-    { label: 'α', value: 'α' },
-    { label: 'β', value: 'β' },
-    { label: 'Ω', value: 'Ω' },
-    { label: '∫', value: '∫' }
+    { label: '∫', value: '∫' },
+    { label: '∫ₐᵇ', value: '∫_a^b' },
+    { label: '∞', value: '∞' },
+    { label: 'θ', value: 'θ' },
+    { label: '±', value: '±' },
+    { label: 'Δ', value: 'Δ' }
   ];
 
   return (
@@ -377,6 +276,7 @@ function MathSymbolToolbar({ onInsert }) {
           type="button"
           onClick={() => onInsert(s.value)}
           className="px-2 py-1 text-xs font-mono font-bold bg-white text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-lg shadow-sm transition-all active:scale-95"
+          title={`Insert ${s.label}`}
         >
           {s.label}
         </button>
@@ -385,7 +285,6 @@ function MathSymbolToolbar({ onInsert }) {
   );
 }
 
-// --- STAR RATING COMPONENT ---
 function StarRating({ value = 3, onChange, readonly = false, size = "md" }) {
   const iconSize = size === "sm" ? "w-3.5 h-3.5" : "w-5 h-5";
   return (
@@ -398,18 +297,20 @@ function StarRating({ value = 3, onChange, readonly = false, size = "md" }) {
           onClick={() => onChange && onChange(star)}
           className={`${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'} transition-transform focus:outline-none`}
         >
-          <Star
-            className={`${iconSize} ${
-              star <= value
-                ? 'fill-amber-400 text-amber-400'
-                : 'fill-slate-100 text-slate-300'
-            }`}
-          />
+          <Star className={`${iconSize} ${star <= value ? 'fill-amber-400 text-amber-400' : 'fill-slate-100 text-slate-300'}`} />
         </button>
       ))}
     </div>
   );
 }
+
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.src = url;
+});
 
 // --- CUSTOM STATIONARY 4-CORNER CROPPER COMPONENT ---
 function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
@@ -560,166 +461,42 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
       <div className="bg-[#18181b] border-b border-zinc-800 px-6 py-4 flex items-center justify-between z-20 shrink-0">
         <h2 className="text-base font-extrabold text-white tracking-wide">Crop and Resize</h2>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
-          >
-            Reset
-          </button>
-          <button
-            type="button"
-            onClick={handleFinishCrop}
-            className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-lg transition-all shadow-md active:scale-95"
-          >
-            Done
-          </button>
+          <button type="button" onClick={onCancel} className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors">Cancel</button>
+          <button type="button" onClick={handleReset} className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors">Reset</button>
+          <button type="button" onClick={handleFinishCrop} className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-lg transition-all shadow-md active:scale-95">Done</button>
         </div>
       </div>
-
       <div className="flex-1 relative bg-[#09090b] bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] flex items-center justify-center p-6 overflow-hidden">
         {rotatedCanvasSrc && (
-          <div 
-            ref={containerRef}
-            className="relative inline-block max-w-full max-h-full shadow-2xl overflow-hidden"
-            style={{ touchAction: 'none' }}
-          >
-            <img 
-              ref={imgRef}
-              src={rotatedCanvasSrc} 
-              alt="Crop target" 
-              className="max-h-[70vh] max-w-full object-contain block pointer-events-none"
-            />
-
-            <div 
-              className="absolute inset-0 bg-black/60 pointer-events-none"
-              style={{
-                clipPath: `polygon(
-                  0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
-                  ${crop.x}% ${crop.y}%, 
-                  ${crop.x}% ${crop.y + crop.height}%, 
-                  ${crop.x + crop.width}% ${crop.y + crop.height}%, 
-                  ${crop.x + crop.width}% ${crop.y}%, 
-                  ${crop.x}% ${crop.y}%
-                )`
-              }}
-            />
-
-            <div
-              className="absolute border border-white/40 shadow-sm cursor-move"
-              style={{
-                left: `${crop.x}%`,
-                top: `${crop.y}%`,
-                width: `${crop.width}%`,
-                height: `${crop.height}%`
-              }}
-              onMouseDown={(e) => handleHandleStart('move', e)}
-              onTouchStart={(e) => handleHandleStart('move', e)}
-            >
+          <div ref={containerRef} className="relative inline-block max-w-full max-h-full shadow-2xl overflow-hidden" style={{ touchAction: 'none' }}>
+            <img ref={imgRef} src={rotatedCanvasSrc} alt="Crop target" className="max-h-[70vh] max-w-full object-contain block pointer-events-none" />
+            <div className="absolute inset-0 bg-black/60 pointer-events-none" style={{ clipPath: `polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, ${crop.x}% ${crop.y}%, ${crop.x}% ${crop.y + crop.height}%, ${crop.x + crop.width}% ${crop.y + crop.height}%, ${crop.x + crop.width}% ${crop.y}%, ${crop.x}% ${crop.y}%)` }} />
+            <div className="absolute border border-white/40 shadow-sm cursor-move" style={{ left: `${crop.x}%`, top: `${crop.y}%`, width: `${crop.width}%`, height: `${crop.height}%` }} onMouseDown={(e) => handleHandleStart('move', e)} onTouchStart={(e) => handleHandleStart('move', e)}>
               <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3">
-                <div className="border-r border-b border-white/20"></div>
-                <div className="border-r border-b border-white/20"></div>
-                <div className="border-b border-white/20"></div>
-                <div className="border-r border-b border-white/20"></div>
-                <div className="border-r border-b border-white/20"></div>
-                <div className="border-b border-white/20"></div>
-                <div className="border-r border-white/20"></div>
-                <div className="border-r border-white/20"></div>
-                <div></div>
+                <div className="border-r border-b border-white/20"></div><div className="border-r border-b border-white/20"></div><div className="border-b border-white/20"></div>
+                <div className="border-r border-b border-white/20"></div><div className="border-r border-b border-white/20"></div><div className="border-b border-white/20"></div>
+                <div className="border-r border-white/20"></div><div className="border-r border-white/20"></div><div></div>
               </div>
-
-              <div
-                className="absolute -top-1.5 -left-1.5 w-6 h-6 cursor-nwse-resize z-30"
-                onMouseDown={(e) => handleHandleStart('tl', e)}
-                onTouchStart={(e) => handleHandleStart('tl', e)}
-              >
-                <div className="w-full h-full border-t-4 border-l-4 border-white shadow-md"></div>
-              </div>
-
-              <div
-                className="absolute -top-1.5 -right-1.5 w-6 h-6 cursor-nesw-resize z-30"
-                onMouseDown={(e) => handleHandleStart('tr', e)}
-                onTouchStart={(e) => handleHandleStart('tr', e)}
-              >
-                <div className="w-full h-full border-t-4 border-r-4 border-white shadow-md"></div>
-              </div>
-
-              <div
-                className="absolute -bottom-1.5 -left-1.5 w-6 h-6 cursor-nesw-resize z-30"
-                onMouseDown={(e) => handleHandleStart('bl', e)}
-                onTouchStart={(e) => handleHandleStart('bl', e)}
-              >
-                <div className="w-full h-full border-b-4 border-l-4 border-white shadow-md"></div>
-              </div>
-
-              <div
-                className="absolute -bottom-1.5 -right-1.5 w-6 h-6 cursor-nwse-resize z-30"
-                onMouseDown={(e) => handleHandleStart('br', e)}
-                onTouchStart={(e) => handleHandleStart('br', e)}
-              >
-                <div className="w-full h-full border-b-4 border-r-4 border-white shadow-md"></div>
-              </div>
-
-              <div 
-                className="absolute top-0 left-6 right-6 h-2 cursor-ns-resize"
-                onMouseDown={(e) => handleHandleStart('t', e)}
-                onTouchStart={(e) => handleHandleStart('t', e)}
-              />
-              <div 
-                className="absolute bottom-0 left-6 right-6 h-2 cursor-ns-resize"
-                onMouseDown={(e) => handleHandleStart('b', e)}
-                onTouchStart={(e) => handleHandleStart('b', e)}
-              />
-              <div 
-                className="absolute left-0 top-6 bottom-6 w-2 cursor-ew-resize"
-                onMouseDown={(e) => handleHandleStart('l', e)}
-                onTouchStart={(e) => handleHandleStart('l', e)}
-              />
-              <div 
-                className="absolute right-0 top-6 bottom-6 w-2 cursor-ew-resize"
-                onMouseDown={(e) => handleHandleStart('r', e)}
-                onTouchStart={(e) => handleHandleStart('r', e)}
-              />
+              <div className="absolute -top-1.5 -left-1.5 w-6 h-6 cursor-nwse-resize z-30" onMouseDown={(e) => handleHandleStart('tl', e)} onTouchStart={(e) => handleHandleStart('tl', e)}><div className="w-full h-full border-t-4 border-l-4 border-white shadow-md"></div></div>
+              <div className="absolute -top-1.5 -right-1.5 w-6 h-6 cursor-nesw-resize z-30" onMouseDown={(e) => handleHandleStart('tr', e)} onTouchStart={(e) => handleHandleStart('tr', e)}><div className="w-full h-full border-t-4 border-r-4 border-white shadow-md"></div></div>
+              <div className="absolute -bottom-1.5 -left-1.5 w-6 h-6 cursor-nesw-resize z-30" onMouseDown={(e) => handleHandleStart('bl', e)} onTouchStart={(e) => handleHandleStart('bl', e)}><div className="w-full h-full border-b-4 border-l-4 border-white shadow-md"></div></div>
+              <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 cursor-nwse-resize z-30" onMouseDown={(e) => handleHandleStart('br', e)} onTouchStart={(e) => handleHandleStart('br', e)}><div className="w-full h-full border-b-4 border-r-4 border-white shadow-md"></div></div>
+              <div className="absolute top-0 left-6 right-6 h-2 cursor-ns-resize" onMouseDown={(e) => handleHandleStart('t', e)} onTouchStart={(e) => handleHandleStart('t', e)} />
+              <div className="absolute bottom-0 left-6 right-6 h-2 cursor-ns-resize" onMouseDown={(e) => handleHandleStart('b', e)} onTouchStart={(e) => handleHandleStart('b', e)} />
+              <div className="absolute left-0 top-6 bottom-6 w-2 cursor-ew-resize" onMouseDown={(e) => handleHandleStart('l', e)} onTouchStart={(e) => handleHandleStart('l', e)} />
+              <div className="absolute right-0 top-6 bottom-6 w-2 cursor-ew-resize" onMouseDown={(e) => handleHandleStart('r', e)} onTouchStart={(e) => handleHandleStart('r', e)} />
             </div>
           </div>
         )}
       </div>
-
       <div className="bg-[#18181b] border-t border-zinc-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-20 shrink-0">
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setRotation(r => (r - 90 + 360) % 360)}
-            className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-          >
-            <RotateCcw className="w-3.5 h-3.5" /> -90°
-          </button>
-          <button
-            type="button"
-            onClick={() => setRotation(r => (r + 90) % 360)}
-            className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-          >
-            <RotateCw className="w-3.5 h-3.5" /> +90°
-          </button>
+          <button type="button" onClick={() => setRotation(r => (r - 90 + 360) % 360)} className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"><RotateCcw className="w-3.5 h-3.5" /> -90°</button>
+          <button type="button" onClick={() => setRotation(r => (r + 90) % 360)} className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"><RotateCw className="w-3.5 h-3.5" /> +90°</button>
         </div>
-
         <div className="flex-1 flex items-center gap-3 w-full sm:max-w-md">
           <span className="text-xs font-semibold text-zinc-400 shrink-0">Angle:</span>
-          <input
-            type="range"
-            min={0}
-            max={360}
-            value={rotation}
-            onChange={(e) => setRotation(Number(e.target.value))}
-            className="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer"
-          />
+          <input type="range" min={0} max={360} value={rotation} onChange={(e) => setRotation(Number(e.target.value))} className="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer" />
           <span className="text-xs font-mono font-extrabold text-amber-400 shrink-0 w-10 text-right">{Math.round(rotation)}°</span>
         </div>
       </div>
@@ -727,27 +504,18 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
   );
 }
 
-// Auth View
+// --- ENHANCED LOGON SCREEN UI ---
 function AuthView({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showGuide, setShowGuide] = useState(false);
   const [quoteIdx, setQuoteIdx] = useState(0);
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
-    }, 120000);
+    }, 12000);
     return () => clearInterval(interval);
   }, []);
 
@@ -775,7 +543,7 @@ function AuthView({ onLoginSuccess }) {
         onLoginSuccess(null);
       } else {
         const fallbackUid = 'usr_' + btoa(username.trim().toLowerCase()).replace(/=/g, '');
-        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim() });
+        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim(), metadata: { creationTime: new Date().toISOString() } });
       }
     } catch (err) {
       let msg = err.message || '';
@@ -785,7 +553,7 @@ function AuthView({ onLoginSuccess }) {
         setError('This username is already registered! Click "Log In" instead.');
       } else {
         const fallbackUid = 'usr_' + btoa(username.trim().toLowerCase()).replace(/=/g, '');
-        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim() });
+        onLoginSuccess({ uid: fallbackUid, email: email, displayName: username.trim(), metadata: { creationTime: new Date().toISOString() } });
       }
     } finally {
       setLoading(false);
@@ -793,107 +561,196 @@ function AuthView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
-      <div className="max-w-4xl w-full flex flex-col md:flex-row gap-6 items-start justify-center">
+    <div className="min-h-screen bg-[url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=2070&auto=format&fit=crop')] bg-cover bg-center flex items-center justify-center font-sans text-slate-800 relative">
+      <div className="absolute inset-0 bg-slate-900/85 backdrop-blur-sm"></div>
+      
+      <div className="max-w-5xl w-full flex flex-col md:flex-row gap-8 items-stretch justify-center p-6 relative z-10">
         
-        <div className="bg-white/95 backdrop-blur-sm w-full md:w-[420px] rounded-3xl p-8 shadow-2xl border border-white/10 shrink-0">
-           <div className="text-center mb-8">
-              <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-4 rounded-2xl inline-block mb-5 shadow-lg shadow-blue-600/30">
-                 <BookOpen className="w-8 h-8 text-white" />
+        <div className="bg-white/95 backdrop-blur-md w-full md:w-[440px] rounded-[2rem] p-10 shadow-2xl shrink-0 flex flex-col justify-center border border-white/20">
+           <div className="text-center mb-10">
+              <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-4 rounded-2xl inline-block mb-6 shadow-lg shadow-indigo-600/30">
+                 <BookOpen className="w-10 h-10 text-white" />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">My HKDSE Question Bank</h2>
-              <p className="text-sm text-slate-500 mt-2 font-medium">Your intelligent exam revision bank.</p>
+              <h2 className="text-3xl font-black text-slate-900 tracking-tight">DSE Hub</h2>
+              <p className="text-slate-500 mt-2 font-medium">Your intelligent revision question bank.</p>
            </div>
            
            {error && (
-             <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm mb-6 border border-red-100 font-medium flex items-start gap-2">
+             <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm mb-6 font-medium flex items-start gap-2 border border-red-100">
                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
                {error}
              </div>
            )}
 
-           <div className="space-y-5">
+           <div className="space-y-6">
               <div>
-                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Username</label>
+                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Username</label>
                  <input 
                    type="text" 
                    value={username}
                    onChange={e => setUsername(e.target.value)}
-                   className="w-full bg-slate-50/50 border border-slate-200 text-slate-800 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                   className="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 rounded-xl p-4 outline-none focus:border-indigo-500 transition-all font-medium"
                    placeholder="e.g. jason_dse2025"
                  />
               </div>
               <div>
-                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Password</label>
+                 <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Password</label>
                  <input 
                    type="password" 
                    value={password}
                    onChange={e => setPassword(e.target.value)}
-                   className="w-full bg-slate-50/50 border border-slate-200 text-slate-800 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
+                   className="w-full bg-slate-50 border-2 border-slate-100 text-slate-800 rounded-xl p-4 outline-none focus:border-indigo-500 transition-all font-medium"
                    placeholder="Minimum 6 characters"
                  />
               </div>
               
-              <div className="grid grid-cols-2 gap-3 pt-4">
+              <div className="grid grid-cols-2 gap-4 pt-4">
                  <button 
                    onClick={() => handleAuth(true)}
                    disabled={loading}
-                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
+                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
                  >
-                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
+                   {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Log In'}
                  </button>
                  <button 
                    onClick={() => handleAuth(false)}
                    disabled={loading}
-                   className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-slate-900/20 active:scale-[0.98]"
+                   className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-all shadow-lg active:scale-[0.98]"
                  >
-                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign Up'}
-                 </button>
-              </div>
-
-              <div className="pt-4 md:hidden">
-                 <button 
-                   onClick={() => setShowGuide(!showGuide)}
-                   className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl"
-                 >
-                   <Info className="w-4 h-4" /> {showGuide ? 'Hide Guide' : 'Read Usage Guide'}
+                   {loading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : 'Sign Up'}
                  </button>
               </div>
            </div>
         </div>
 
-        <div className={`w-full md:w-[480px] bg-slate-800/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl transition-all duration-300 ${showGuide ? 'block' : 'hidden md:block'}`}>
+        <div className="w-full md:w-[480px] flex flex-col justify-center text-white pl-4">
+           <h1 className="text-4xl md:text-5xl font-black leading-tight mb-6">
+             Master Your <span className="text-indigo-400">HKDSE</span> With Smart Revision
+           </h1>
            
-           <div className="flex items-center gap-2 bg-indigo-950/80 text-indigo-200 px-3.5 py-2 rounded-xl border border-indigo-500/30 mb-6 text-xs font-mono font-bold w-fit shadow-inner">
-             <Clock className="w-4 h-4 text-indigo-400 animate-pulse" />
-             <span>{currentTime.toLocaleString()}</span>
-           </div>
-
-           <div className="bg-indigo-900/40 p-6 rounded-2xl border border-indigo-500/30 mb-6 relative overflow-hidden shadow-inner">
-             <Quote className="w-20 h-20 text-indigo-500/10 absolute -top-4 -left-4 rotate-180" />
-             <p className="text-[15px] text-indigo-50 italic relative z-10 font-medium leading-relaxed min-h-[48px] flex items-center">
+           <div className="bg-white/10 backdrop-blur-md p-8 rounded-3xl border border-white/10 mb-8 relative overflow-hidden">
+             <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/20 rounded-full blur-3xl"></div>
+             <Quote className="w-10 h-10 text-white/20 absolute top-6 left-6" />
+             <p className="text-lg md:text-xl font-medium leading-relaxed relative z-10 italic mt-6 min-h-[80px]">
                "{MOTIVATIONAL_QUOTES[quoteIdx]}"
              </p>
            </div>
-
-           <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-300">
-             <Sparkles className="w-6 h-6" /> Welcome to the Hub
-           </h3>
-           <div className="space-y-6 text-sm text-slate-300">
-             <div>
-               <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                 <BookOpen className="w-4 h-4 text-emerald-400" /> Usage Instructions & Guidelines
-               </h4>
-               <ul className="space-y-2.5 pl-6 list-disc marker:text-indigo-400">
-                 <li><strong>Community Library:</strong> Browse and save public questions shared by other students.</li>
-                 <li><strong>Flashcard Mode:</strong> Turn your saved questions into a powerful, distraction-free study deck.</li>
-                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, scientific notation, and math symbols.</li>
-                 <li className="text-amber-300 font-semibold">Extract text whenever you can and don't keep pictures on the server.</li>
-               </ul>
+           
+           <div className="space-y-4 text-slate-300 font-medium">
+             <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+               <div className="bg-emerald-500/20 p-2.5 rounded-xl"><CheckCircle2 className="w-6 h-6 text-emerald-400" /></div>
+               <span>AI-powered OCR for complex math symbols & diagrams</span>
+             </div>
+             <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+               <div className="bg-blue-500/20 p-2.5 rounded-xl"><Globe className="w-6 h-6 text-blue-400" /></div>
+               <span>Share and discover in the Community Library</span>
+             </div>
+             <div className="flex items-center gap-3 bg-white/5 p-4 rounded-2xl border border-white/5">
+               <div className="bg-amber-500/20 p-2.5 rounded-xl"><Zap className="w-6 h-6 text-amber-400" /></div>
+               <span>Interactive Flashcard Mode for active recall</span>
              </div>
            </div>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// --- NEW "MY ACCOUNT" VIEW COMPONENT ---
+function MyAccountView({ user, questions }) {
+  const displayUsername = user?.email?.replace('@dsehub.local', '') || 'Platform User';
+  const joinDate = user?.metadata?.creationTime 
+    ? new Date(user.metadata.creationTime).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) 
+    : 'Unknown Date';
+
+  const [defaultShare, setDefaultShare] = useState(
+    localStorage.getItem('defaultSharePublicly') === 'true'
+  );
+  const [showBreakdown, setShowBreakdown] = useState(false);
+
+  const toggleSharePref = () => {
+    const newVal = !defaultShare;
+    setDefaultShare(newVal);
+    localStorage.setItem('defaultSharePublicly', newVal);
+  };
+
+  const subjectCounts = questions.reduce((acc, q) => {
+    acc[q.subject] = (acc[q.subject] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50 rounded-full blur-3xl -z-10"></div>
+        
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8 pb-8 border-b border-slate-100">
+          <div className="w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-500 text-white rounded-3xl shadow-lg flex items-center justify-center font-black text-4xl transform -rotate-3">
+            {displayUsername.charAt(0).toUpperCase()}
+          </div>
+          <div className="text-center sm:text-left mt-2">
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">{displayUsername}</h2>
+            <p className="text-sm font-medium text-slate-500 mt-2 flex items-center justify-center sm:justify-start gap-2 bg-slate-50 w-fit sm:mx-0 mx-auto px-3 py-1.5 rounded-lg border border-slate-200">
+              <Clock className="w-4 h-4 text-indigo-500" /> Joined: {joinDate}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div 
+            onClick={() => setShowBreakdown(!showBreakdown)}
+            className="bg-gradient-to-br from-indigo-50 to-blue-50 border border-indigo-100 rounded-2xl p-6 cursor-pointer hover:shadow-md transition-all group"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm text-indigo-600 group-hover:scale-110 transition-transform"><BarChart3 className="w-6 h-6" /></div>
+              <ChevronDown className={`w-5 h-5 text-indigo-400 transition-transform ${showBreakdown ? 'rotate-180' : ''}`} />
+            </div>
+            <h3 className="text-4xl font-black text-indigo-900">{questions.length}</h3>
+            <p className="text-xs font-extrabold text-indigo-600 mt-1 uppercase tracking-wider">Total Questions Uploaded</p>
+            <p className="text-[10px] font-medium text-indigo-400 mt-2">Click to view subject breakdown</p>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="bg-white p-2.5 rounded-xl shadow-sm text-slate-600"><Settings className="w-6 h-6" /></div>
+            </div>
+            <label className="flex items-start gap-3 cursor-pointer mt-2">
+              <input 
+                type="checkbox" 
+                checked={defaultShare} 
+                onChange={toggleSharePref}
+                className="mt-1 w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shadow-sm"
+              />
+              <div>
+                <span className="block font-bold text-slate-800 text-sm">Share to Community by Default</span>
+                <span className="block text-xs font-medium text-slate-500 mt-1.5 leading-relaxed">Automatically check the "Share Publicly" box when adding new questions to your bank.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        {showBreakdown && (
+          <div className="mt-6 bg-slate-50 rounded-2xl p-6 border border-slate-200 animate-in fade-in slide-in-from-top-4">
+            <h4 className="text-xs font-extrabold text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+              <BookOpen className="w-4 h-4" /> Uploads by Subject
+            </h4>
+            {Object.keys(subjectCounts).length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.entries(subjectCounts).sort((a,b)=>b[1]-a[1]).map(([sub, count]) => (
+                  <div key={sub} className="flex items-center justify-between bg-white p-3 rounded-xl border border-slate-100 shadow-sm">
+                    <span className="font-bold text-slate-700 text-sm">{sub}</span>
+                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-lg text-sm font-black">{count}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 border border-dashed border-slate-300 rounded-xl bg-white">
+                <p className="text-sm text-slate-500 font-medium">No questions uploaded to your bank yet.</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1353,220 +1210,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
           ))}
         </div>
       )}
-    </div>
-  );
-}
-
-// Main App Output UI
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [localAccount, setLocalAccount] = useState(null);
-  const [loadingAuth, setLoadingAuth] = useState(true);
-  const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
-  
-  const [view, setView] = useState('library');
-  const [editingQuestion, setEditingQuestion] = useState(null);
-  const [questions, setQuestions] = useState([]);
-
-  const activeUser = user || localAccount;
-
-  useEffect(() => {
-    if (!auth) {
-      setLoadingAuth(false);
-      return;
-    }
-    const initAnon = async () => {
-      try {
-        if (!auth.currentUser) await signInAnonymously(auth);
-      } catch (err) {}
-    };
-    initAnon();
-
-    const unsub = onAuthStateChanged(auth, async (usr) => {
-      setUser(usr);
-      setLoadingAuth(false);
-      if (usr) {
-        setHasPassedAuthScreen(true);
-        setLocalAccount(null);
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    if (!activeUser || !db || !hasPassedAuthScreen) return;
-    const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
-    const unsub = onSnapshot(qRef, (snap) => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-      setQuestions(data);
-    }, (err) => {
-      console.error("Cloud Database listener error:", err);
-    });
-    return () => unsub();
-  }, [activeUser, hasPassedAuthScreen]);
-
-  const handleLogout = async () => {
-    if (auth) await signOut(auth);
-    setLocalAccount(null);
-    setUser(null);
-    setHasPassedAuthScreen(false);
-    setQuestions([]);
-  };
-
-  const handleCloneCommunityQuestion = async (q) => {
-    if (!activeUser || !db) return;
-    try {
-      const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
-      const cloneData = { ...q };
-      delete cloneData.id; 
-      
-      cloneData.isSharedPublicly = false; 
-      cloneData.status = 'unmarked';
-      cloneData.createdAt = new Date().toISOString();
-      cloneData.clonedFrom = q.id;
-
-      await addDoc(qRef, cloneData);
-      alert("Question successfully cloned to your Library!");
-    } catch (err) {
-      console.error("Failed to clone:", err);
-      alert("Failed to clone question.");
-    }
-  };
-
-  if (loadingAuth) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-indigo-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
-          <span className="text-indigo-200 text-sm font-medium">Loading Workspace...</span>
-        </div>
-      </div>
-    );
-  }
-
-  if (!hasPassedAuthScreen) {
-    return (
-      <AuthView 
-        onLoginSuccess={(fallbackUser) => {
-          if (fallbackUser) setLocalAccount(fallbackUser);
-          setHasPassedAuthScreen(true);
-        }} 
-      />
-    );
-  }
-
-  const displayUsername = activeUser?.email?.endsWith('@dsehub.local') 
-    ? activeUser.email.replace('@dsehub.local', '') 
-    : 'Platform User';
-
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-xl shadow-md shadow-indigo-200">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-[15px] leading-tight text-slate-900">My HKDSE Question Bank</h1>
-              <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full inline-block animate-pulse bg-emerald-500"></span>
-                {displayUsername}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-2">
-            <button
-              onClick={() => setView('library')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'library' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              <Library className="w-4 h-4" />
-              <span className="hidden sm:inline">Library</span>
-            </button>
-            <button
-              onClick={() => setView('review')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'review' ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-700'
-              }`}
-            >
-              <XCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Review</span>
-            </button>
-            <button
-              onClick={() => setView('mastered')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'mastered' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700'
-              }`}
-            >
-              <CheckCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Mastered</span>
-            </button>
-            <button
-              onClick={() => { setView('add'); setEditingQuestion(null); }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'add' ? 'bg-slate-900 text-white shadow-md shadow-slate-400' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-sm'
-              }`}
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">Add</span>
-            </button>
-
-            <div className="w-px h-6 bg-slate-200 mx-1"></div>
-
-            <button
-              onClick={() => setView('community')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                view === 'community' ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-              }`}
-            >
-              <Globe className="w-4 h-4" />
-              <span className="hidden sm:inline">Community</span>
-            </button>
-            
-            <div className="w-px h-6 bg-slate-200 mx-1"></div>
-            
-            <button
-              onClick={handleLogout}
-              className="p-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="flex-1 max-w-5xl w-full mx-auto p-4 py-8">
-        {view === 'community' ? (
-           <CommunityLibraryView 
-             db={db} 
-             appId={appId} 
-             user={activeUser} 
-             onSaveToLibrary={handleCloneCommunityQuestion}
-           />
-        ) : view === 'library' || view === 'review' || view === 'mastered' ? (
-          <LibraryView 
-            questions={view === 'review' ? questions.filter(q => q.status === 'review') : view === 'mastered' ? questions.filter(q => q.status === 'mastered') : questions} 
-            user={activeUser} 
-            currentView={view}
-            onEdit={(q) => {
-              setEditingQuestion(q);
-              setView('add');
-            }}
-          />
-        ) : (
-          <AddQuestionView 
-            user={activeUser} 
-            editData={editingQuestion}
-            onSaved={() => { setView('library'); setEditingQuestion(null); }}
-            onCancel={() => { setView('library'); setEditingQuestion(null); }}
-          />
-        )}
-      </main>
     </div>
   );
 }
@@ -2087,7 +1730,11 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
   const [remarks, setRemarks] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [includeImage, setIncludeImage] = useState(true);
-  const [isSharedPublicly, setIsSharedPublicly] = useState(false);
+  
+  // Set default checking state for public share based on user's My Account preference
+  const [isSharedPublicly, setIsSharedPublicly] = useState(
+    editData ? editData.isSharedPublicly : (localStorage.getItem('defaultSharePublicly') === 'true')
+  );
 
   const processImageFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -2223,11 +1870,8 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
         if (parsedOpts) setOptions(parsedOpts);
         setStatus('idle');
       } else {
-        // AI Mode: Process image base64 directly
         const base64Data = attachedImage.split(',')[1];
         const mimeType = 'image/jpeg';
-
-        // Optional non-blocking pre-OCR check
         let localExtractedText = '';
         try {
           localExtractedText = await runLocalOCR(attachedImage);
@@ -2282,7 +1926,6 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
     }
   };
 
-  
   const handleSaveQuestion = async () => {
     if (!questionText.trim()) {
       setErrorText('Question Body cannot be empty.');
@@ -2689,6 +2332,139 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// --- MAIN APP COMPONENT ---
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [localAccount, setLocalAccount] = useState(null);
+  const [loadingAuth, setLoadingAuth] = useState(true);
+  const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
+  const [view, setView] = useState('library');
+  const [editingQuestion, setEditingQuestion] = useState(null);
+  const [questions, setQuestions] = useState([]);
+
+  const activeUser = user || localAccount;
+
+  useEffect(() => {
+    if (!auth) { setLoadingAuth(false); return; }
+    
+    const initAnon = async () => {
+      try {
+        if (!auth.currentUser) await signInAnonymously(auth);
+      } catch (err) {}
+    };
+    initAnon();
+
+    const unsub = onAuthStateChanged(auth, (usr) => {
+      setUser(usr);
+      setLoadingAuth(false);
+      if (usr) { setHasPassedAuthScreen(true); setLocalAccount(null); }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!activeUser || !db || !hasPassedAuthScreen) return;
+    const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
+    const unsub = onSnapshot(qRef, (snap) => {
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+      setQuestions(data);
+    }, (err) => {
+      console.error("Cloud Database listener error:", err);
+    });
+    return () => unsub();
+  }, [activeUser, hasPassedAuthScreen]);
+
+  const handleLogout = async () => {
+    if (auth) await signOut(auth);
+    setLocalAccount(null);
+    setUser(null);
+    setHasPassedAuthScreen(false);
+    setQuestions([]);
+  };
+
+  const handleCloneCommunityQuestion = async (q) => {
+    if (!activeUser || !db) return;
+    try {
+      const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
+      const cloneData = { ...q };
+      delete cloneData.id; 
+      cloneData.isSharedPublicly = false; 
+      cloneData.status = 'unmarked';
+      cloneData.createdAt = new Date().toISOString();
+      cloneData.clonedFrom = q.id;
+
+      await addDoc(qRef, cloneData);
+      alert("Question successfully cloned to your Library!");
+    } catch (err) {
+      console.error("Failed to clone:", err);
+      alert("Failed to clone question.");
+    }
+  };
+
+  if (loadingAuth) return <div className="min-h-screen bg-slate-900 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-indigo-400" /></div>;
+  if (!hasPassedAuthScreen) return <AuthView onLoginSuccess={(usr) => { if (usr) setLocalAccount(usr); setHasPassedAuthScreen(true); }} />;
+
+  const displayUsername = activeUser?.email?.endsWith('@dsehub.local') 
+    ? activeUser.email.replace('@dsehub.local', '') 
+    : 'Platform User';
+
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-purple-500 rounded-xl shadow-md shadow-indigo-200">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="font-bold text-[15px] leading-tight text-slate-900">DSE Question Bank</h1>
+              <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full inline-block animate-pulse bg-emerald-500"></span>
+                {displayUsername}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 overflow-x-auto py-2 scrollbar-hide">
+            <button onClick={() => setView('library')} className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${view === 'library' ? 'bg-indigo-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}><Library className="w-4 h-4"/> Lib</button>
+            <button onClick={() => { setView('add'); setEditingQuestion(null); }} className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${view === 'add' ? 'bg-slate-900 text-white shadow-md' : 'bg-slate-800 text-white hover:bg-slate-700'}`}><Plus className="w-4 h-4"/> Add</button>
+            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+            <button onClick={() => setView('community')} className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${view === 'community' ? 'bg-blue-600 text-white shadow-md' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'}`}><Globe className="w-4 h-4"/> Hub</button>
+            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+            <button onClick={() => setView('account')} className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${view === 'account' ? 'bg-amber-500 text-white shadow-md' : 'bg-amber-50 text-amber-600 hover:bg-amber-100'}`}><UserCircle className="w-4 h-4"/> Account</button>
+            <button onClick={handleLogout} className="p-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"><LogOut className="w-4 h-4" /></button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-5xl w-full mx-auto p-4 py-8">
+        {view === 'account' && <MyAccountView user={activeUser} questions={questions} />}
+        {view === 'library' && (
+          <LibraryView 
+            questions={questions} 
+            user={activeUser} 
+            currentView={view}
+            onEdit={(q) => { setEditingQuestion(q); setView('add'); }}
+          />
+        )}
+        {view === 'community' && (
+          <CommunityLibraryView 
+            db={db} appId={appId} user={activeUser} onSaveToLibrary={handleCloneCommunityQuestion}
+          />
+        )}
+        {view === 'add' && (
+          <AddQuestionView 
+            user={activeUser} editData={editingQuestion} 
+            onSaved={() => { setView('library'); setEditingQuestion(null); }} 
+            onCancel={() => { setView('library'); setEditingQuestion(null); }} 
+          />
+        )}
+      </main>
     </div>
   );
 }
