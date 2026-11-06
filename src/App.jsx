@@ -33,6 +33,7 @@ import {
   Library,
   Trash2,
   ChevronDown,
+  ChevronUp,
   Key,
   FileText,
   CheckCircle2,
@@ -61,10 +62,17 @@ import {
   Quote,
   Globe,
   Download,
-  Users
+  Users,
+  User,
+  PieChart,
+  BarChart2,
+  Settings,
+  CheckSquare,
+  Award,
+  BookMarked
 } from 'lucide-react';
 
-// --- MOTIVATIONAL QUOTES ---
+// --- MOTIVATIONAL QUOTES (30 Expanded Quotes) ---
 const MOTIVATIONAL_QUOTES = [
   "Success is the sum of small efforts, repeated day in and day out.",
   "The secret of getting ahead is getting started.",
@@ -75,7 +83,27 @@ const MOTIVATIONAL_QUOTES = [
   "Your future is created by what you do today, not tomorrow.",
   "Strive for progress, not perfection.",
   "A little progress each day adds up to big results.",
-  "The only bad workout is the one that didn't happen. The only bad study session is the one you skipped."
+  "The only bad workout is the one that didn't happen. The only bad study session is the one you skipped.",
+  "Believe you can and you're halfway there.",
+  "Quality is not an act, it is a habit.",
+  "Action is the foundational key to all success.",
+  "You don't have to be great to start, but you have to start to be great.",
+  "The expert in anything was once a beginner.",
+  "Small daily improvements over time lead to stunning results.",
+  "Focus on being productive instead of busy.",
+  "Discipline is choosing between what you want now and what you want most.",
+  "Great things are done by a series of small things brought together.",
+  "Success isn't always about greatness. It's about consistency.",
+  "Don't count the days, make the days count.",
+  "Mistakes are proof that you are trying.",
+  "Skill is built one repetition at a time.",
+  "The pain of studying is temporary, but the pride of achieving is forever.",
+  "Clear vision paired with persistent effort conquers all difficulties.",
+  "Every masterpiece was once a work in progress.",
+  "Start where you are. Use what you have. Do what you can.",
+  "Your passion and focus define your success.",
+  "Step by step, day by day, victory is built.",
+  "Consistency transforms average performance into excellence."
 ];
 
 // --- HKDSE SYLLABUS DATA STRUCTURE ---
@@ -238,7 +266,6 @@ const rotateBase64Image = (base64, direction = 'cw') => {
 };
 
 // OCR Engines
-
 const runLocalOCR = async (imageFile) => {
   if (window.Tesseract) {
     try {
@@ -252,7 +279,6 @@ const runLocalOCR = async (imageFile) => {
     }
   }
 
-  // Fallback CDNs in case jsDelivr is blocked by ad-blocker or CSP
   const cdns = [
     'https://cdn.jsdelivr.net/npm/tesseract.min.js@5/dist/tesseract.min.js',
     'https://unpkg.com/tesseract.min.js@5/dist/tesseract.min.js',
@@ -278,9 +304,8 @@ const runLocalOCR = async (imageFile) => {
       console.warn(`Could not load OCR CDN from ${src}`);
     }
   }
-  return ''; // Return empty string gracefully if all CDNs fail
+  return '';
 };
-
 
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, preExtractedText = '') => {
   const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini`;
@@ -733,7 +758,7 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
   );
 }
 
-// Auth View
+// --- VISUALLY ENHANCED AUTH VIEW ---
 function AuthView({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -753,9 +778,13 @@ function AuthView({ onLoginSuccess }) {
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
-    }, 120000);
+    }, 45000);
     return () => clearInterval(interval);
   }, []);
+
+  const shuffleQuote = () => {
+    setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
+  };
 
   const handleAuth = async (isLogin) => {
     if (!username.trim() || !password.trim()) {
@@ -799,104 +828,136 @@ function AuthView({ onLoginSuccess }) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
-      <div className="max-w-4xl w-full flex flex-col md:flex-row gap-6 items-start justify-center">
+    <div className="min-h-screen bg-slate-950 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.25),rgba(255,255,255,0))] flex items-center justify-center p-4 font-sans text-slate-100 relative overflow-hidden">
+      {/* Decorative Background Blur Glows */}
+      <div className="absolute top-1/4 -left-20 w-80 h-80 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-10 -right-20 w-96 h-96 bg-blue-600/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div className="max-w-4xl w-full flex flex-col md:flex-row gap-6 items-stretch justify-center z-10">
         
-        <div className="bg-white/95 backdrop-blur-sm w-full md:w-[420px] rounded-3xl p-8 shadow-2xl border border-white/10 shrink-0">
-           <div className="text-center mb-8">
-              <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-4 rounded-2xl inline-block mb-5 shadow-lg shadow-blue-600/30">
-                 <BookOpen className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">My HKDSE Question Bank</h2>
-              <p className="text-sm text-slate-500 mt-2 font-medium">Your intelligent exam revision bank.</p>
-           </div>
-           
-           {error && (
-             <div className="bg-red-50 text-red-700 p-4 rounded-xl text-sm mb-6 border border-red-100 font-medium flex items-start gap-2">
-               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-red-500" />
-               {error}
+        {/* Main Auth Form Card */}
+        <div className="bg-slate-900/90 backdrop-blur-xl w-full md:w-[420px] rounded-3xl p-8 shadow-2xl border border-white/10 flex flex-col justify-between shrink-0">
+           <div>
+             <div className="text-center mb-8">
+                <div className="relative inline-block mb-4">
+                  <div className="bg-gradient-to-tr from-indigo-500 via-blue-500 to-emerald-400 p-4 rounded-2xl shadow-xl shadow-indigo-500/30">
+                     <BookOpen className="w-9 h-9 text-white" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500"></span>
+                  </span>
+                </div>
+                <h2 className="text-2xl font-black text-white tracking-tight">HKDSE Question Hub</h2>
+                <p className="text-xs text-indigo-300 mt-2 font-semibold tracking-wide uppercase">AI-Powered Exam Companion</p>
              </div>
-           )}
+             
+             {error && (
+               <div className="bg-rose-950/80 text-rose-200 p-4 rounded-xl text-xs mb-6 border border-rose-500/30 font-medium flex items-start gap-2 shadow-inner">
+                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-400" />
+                 {error}
+               </div>
+             )}
 
-           <div className="space-y-5">
-              <div>
-                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Username</label>
-                 <input 
-                   type="text" 
-                   value={username}
-                   onChange={e => setUsername(e.target.value)}
-                   className="w-full bg-slate-50/50 border border-slate-200 text-slate-800 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
-                   placeholder="e.g. jason_dse2025"
-                 />
-              </div>
-              <div>
-                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-2">Password</label>
-                 <input 
-                   type="password" 
-                   value={password}
-                   onChange={e => setPassword(e.target.value)}
-                   className="w-full bg-slate-50/50 border border-slate-200 text-slate-800 rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all shadow-sm"
-                   placeholder="Minimum 6 characters"
-                 />
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 pt-4">
-                 <button 
-                   onClick={() => handleAuth(true)}
-                   disabled={loading}
-                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-indigo-600/20 active:scale-[0.98]"
-                 >
-                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
-                 </button>
-                 <button 
-                   onClick={() => handleAuth(false)}
-                   disabled={loading}
-                   className="bg-slate-800 hover:bg-slate-900 text-white font-bold py-4 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-slate-900/20 active:scale-[0.98]"
-                 >
-                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign Up'}
-                 </button>
-              </div>
+             <div className="space-y-4">
+                <div>
+                   <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1.5">Username</label>
+                   <input 
+                     type="text" 
+                     value={username}
+                     onChange={e => setUsername(e.target.value)}
+                     className="w-full bg-slate-950/70 border border-slate-700/80 text-white rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner text-sm font-medium placeholder-slate-600"
+                     placeholder="e.g. jason_dse2025"
+                   />
+                </div>
+                <div>
+                   <label className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest block mb-1.5">Password</label>
+                   <input 
+                     type="password" 
+                     value={password}
+                     onChange={e => setPassword(e.target.value)}
+                     className="w-full bg-slate-950/70 border border-slate-700/80 text-white rounded-xl p-3.5 outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all shadow-inner text-sm font-medium placeholder-slate-600"
+                     placeholder="Minimum 6 characters"
+                   />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 pt-3">
+                   <button 
+                     onClick={() => handleAuth(true)}
+                     disabled={loading}
+                     className="bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-center shadow-lg shadow-indigo-600/30 active:scale-[0.98] text-sm"
+                   >
+                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log In'}
+                   </button>
+                   <button 
+                     onClick={() => handleAuth(false)}
+                     disabled={loading}
+                     className="bg-slate-800 hover:bg-slate-700 text-white font-extrabold py-3.5 rounded-xl transition-all flex items-center justify-center border border-slate-700 shadow-lg active:scale-[0.98] text-sm"
+                   >
+                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Sign Up'}
+                   </button>
+                </div>
+             </div>
+           </div>
 
-              <div className="pt-4 md:hidden">
-                 <button 
-                   onClick={() => setShowGuide(!showGuide)}
-                   className="w-full py-3 flex items-center justify-center gap-2 text-sm font-bold text-indigo-600 bg-indigo-50 rounded-xl"
-                 >
-                   <Info className="w-4 h-4" /> {showGuide ? 'Hide Guide' : 'Read Usage Guide'}
-                 </button>
-              </div>
+           <div className="pt-6 md:hidden">
+              <button 
+                onClick={() => setShowGuide(!showGuide)}
+                className="w-full py-3 flex items-center justify-center gap-2 text-xs font-bold text-indigo-300 bg-indigo-950/60 rounded-xl border border-indigo-500/30"
+              >
+                <Info className="w-4 h-4" /> {showGuide ? 'Hide Guide' : 'Read Usage Guide'}
+              </button>
            </div>
         </div>
 
-        <div className={`w-full md:w-[480px] bg-slate-800/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl transition-all duration-300 ${showGuide ? 'block' : 'hidden md:block'}`}>
-           
-           <div className="flex items-center gap-2 bg-indigo-950/80 text-indigo-200 px-3.5 py-2 rounded-xl border border-indigo-500/30 mb-6 text-xs font-mono font-bold w-fit shadow-inner">
-             <Clock className="w-4 h-4 text-indigo-400 animate-pulse" />
-             <span>{currentTime.toLocaleString()}</span>
-           </div>
-
-           <div className="bg-indigo-900/40 p-6 rounded-2xl border border-indigo-500/30 mb-6 relative overflow-hidden shadow-inner">
-             <Quote className="w-20 h-20 text-indigo-500/10 absolute -top-4 -left-4 rotate-180" />
-             <p className="text-[15px] text-indigo-50 italic relative z-10 font-medium leading-relaxed min-h-[48px] flex items-center">
-               "{MOTIVATIONAL_QUOTES[quoteIdx]}"
-             </p>
-           </div>
-
-           <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-300">
-             <Sparkles className="w-6 h-6" /> Welcome to the Hub
-           </h3>
-           <div className="space-y-6 text-sm text-slate-300">
-             <div>
-               <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                 <BookOpen className="w-4 h-4 text-emerald-400" /> Usage Instructions & Guidelines
-               </h4>
-               <ul className="space-y-2.5 pl-6 list-disc marker:text-indigo-400">
-                 <li><strong>Community Library:</strong> Browse and save public questions shared by other students.</li>
-                 <li><strong>Flashcard Mode:</strong> Turn your saved questions into a powerful, distraction-free study deck.</li>
-                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, scientific notation, and math symbols.</li>
-                 <li className="text-amber-300 font-semibold">Extract text whenever you can and don't keep pictures on the server.</li>
-               </ul>
+        {/* Side Panel Guide & Quotes */}
+        <div className={`w-full md:w-[460px] bg-slate-900/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl flex flex-col justify-between transition-all duration-300 ${showGuide ? 'block' : 'hidden md:flex'}`}>
+           <div className="space-y-6">
+             <div className="flex items-center justify-between">
+               <div className="flex items-center gap-2 bg-indigo-950/80 text-indigo-300 px-3.5 py-1.5 rounded-xl border border-indigo-500/30 text-xs font-mono font-bold shadow-inner">
+                 <Clock className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                 <span>{currentTime.toLocaleString()}</span>
+               </div>
+               <button
+                 onClick={shuffleQuote}
+                 className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-all"
+                 title="Shuffle Motivational Quote"
+               >
+                 <RefreshCw className="w-4 h-4" />
+               </button>
              </div>
+
+             <div className="bg-gradient-to-br from-indigo-950/70 to-slate-900/90 p-6 rounded-2xl border border-indigo-500/30 relative overflow-hidden shadow-xl">
+               <Quote className="w-16 h-16 text-indigo-500/10 absolute -top-2 -left-2 rotate-180" />
+               <p className="text-sm text-indigo-100 italic relative z-10 font-medium leading-relaxed min-h-[54px] flex items-center">
+                 "{MOTIVATIONAL_QUOTES[quoteIdx]}"
+               </p>
+             </div>
+
+             <div>
+               <h3 className="text-base font-bold mb-4 flex items-center gap-2 text-indigo-300">
+                 <Sparkles className="w-5 h-5 text-indigo-400" /> System Features & Guidelines
+               </h3>
+               <div className="space-y-3 text-xs text-slate-300 font-medium">
+                 <div className="flex items-start gap-2.5 bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                   <Globe className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+                   <div><strong>Community Library:</strong> Browse and save public questions shared by other DSE students.</div>
+                 </div>
+                 <div className="flex items-start gap-2.5 bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                   <Zap className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                   <div><strong>Flashcard Mode:</strong> Turn saved questions into an interactive, distraction-free study deck.</div>
+                 </div>
+                 <div className="flex items-start gap-2.5 bg-slate-950/40 p-3 rounded-xl border border-slate-800">
+                   <Key className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                   <div><strong>Gemini AI OCR:</strong> Auto-extracts MC options, LaTeX, fractions, and symbols from photos.</div>
+                 </div>
+               </div>
+             </div>
+           </div>
+
+           <div className="pt-6 border-t border-slate-800/80 text-[11px] text-slate-400 flex items-center justify-between font-mono">
+             <span>HKDSE Exam Revision Bank</span>
+             <span>v4.5</span>
            </div>
         </div>
 
@@ -1307,10 +1368,12 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
               )}
 
               <div className="p-5 space-y-4 flex-1">
-                <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
-                  <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
-                  {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
-                </div>
+                {q.questionText && (
+                  <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
+                    {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+                  </div>
+                )}
 
                 {q.type === 'MC' && q.options && typeof q.options === 'object' && (
                   <div className="grid grid-cols-1 gap-2.5 pt-3">
@@ -1363,7 +1426,183 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   );
 }
 
-// Main App Output UI
+// --- MY ACCOUNT DASHBOARD COMPONENT ---
+function MyAccountDashboardView({ user, questions, defaultPublicShare, onToggleDefaultPublicShare }) {
+  const [expandedSubject, setExpandedSubject] = useState(null);
+  const [quoteIdx, setQuoteIdx] = useState(() => Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length));
+
+  const shuffleQuote = () => {
+    setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
+  };
+
+  const totalQuestions = questions.length;
+  const masteredCount = questions.filter(q => q.status === 'mastered').length;
+  const reviewCount = questions.filter(q => q.status === 'review').length;
+  const unmarkedCount = questions.filter(q => !q.status || q.status === 'unmarked').length;
+
+  // Aggregate questions by subject name
+  const subjectBreakdown = {};
+  Object.keys(HKDSE_SYLLABUS).forEach(key => {
+    const sName = HKDSE_SYLLABUS[key].name;
+    subjectBreakdown[sName] = questions.filter(q => q.subject === sName);
+  });
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      {/* User Header Profile */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 md:p-8 text-white border border-white/10 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+        <div className="flex items-center gap-4 z-10">
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-emerald-400 flex items-center justify-center font-black text-2xl text-white shadow-lg">
+            <User className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-extrabold tracking-tight">
+              {user?.email?.endsWith('@dsehub.local') ? user.email.replace('@dsehub.local', '') : user?.displayName || 'DSE Student'}
+            </h2>
+            <p className="text-xs text-indigo-300 font-mono mt-1">ID: {user?.uid || 'Local Account'}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-3 rounded-2xl border border-white/10 shrink-0 z-10">
+          <Award className="w-6 h-6 text-amber-400" />
+          <div>
+            <div className="text-[10px] uppercase font-bold text-indigo-200 tracking-wider">Total Uploaded</div>
+            <div className="text-xl font-black text-white">{totalQuestions} Questions</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Overview Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-emerald-100 rounded-xl text-emerald-600">
+            <CheckCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-2xl font-black text-slate-900">{masteredCount}</div>
+            <div className="text-xs font-bold text-slate-500">Mastered</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-rose-100 rounded-xl text-rose-600">
+            <XCircle className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-2xl font-black text-slate-900">{reviewCount}</div>
+            <div className="text-xs font-bold text-slate-500">Needs Review</div>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+          <div className="p-3 bg-slate-100 rounded-xl text-slate-600">
+            <BookMarked className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-2xl font-black text-slate-900">{unmarkedCount}</div>
+            <div className="text-xs font-bold text-slate-500">Unmarked</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Motivational Quote Banner */}
+      <div className="bg-indigo-900/90 text-indigo-50 p-6 rounded-3xl border border-indigo-700/50 relative overflow-hidden shadow-md flex items-center justify-between gap-4">
+        <Quote className="w-16 h-16 text-indigo-400/20 absolute -top-2 -left-2 rotate-180 pointer-events-none" />
+        <div className="relative z-10 space-y-1">
+          <span className="text-[10px] font-extrabold text-indigo-300 uppercase tracking-widest block">Daily Motivation</span>
+          <p className="text-sm font-medium italic leading-relaxed">"{MOTIVATIONAL_QUOTES[quoteIdx]}"</p>
+        </div>
+        <button
+          onClick={shuffleQuote}
+          className="p-2.5 bg-indigo-800 hover:bg-indigo-700 rounded-xl text-indigo-200 transition-colors shrink-0 z-10"
+          title="Shuffle Quote"
+        >
+          <RefreshCw className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Upload Settings / Default Preference */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+        <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+          <Settings className="w-4 h-4 text-indigo-600" /> Account Preferences
+        </h3>
+        <label className="flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200 cursor-pointer hover:bg-slate-100/80 transition-colors">
+          <input
+            type="checkbox"
+            checked={defaultPublicShare}
+            onChange={(e) => onToggleDefaultPublicShare(e.target.checked)}
+            className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+          />
+          <div>
+            <span className="text-xs font-bold text-slate-800 block">Default to share uploaded questions to Community Library</span>
+            <span className="text-[11px] text-slate-500 font-medium">When checked, new questions will have "Share publicly" enabled by default.</span>
+          </div>
+        </label>
+      </div>
+
+      {/* Subject Breakdown Accordion */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+        <h3 className="text-sm font-extrabold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+          <BarChart2 className="w-4 h-4 text-indigo-600" /> Questions Per Subject Breakdown
+        </h3>
+        
+        <div className="space-y-3">
+          {Object.keys(HKDSE_SYLLABUS).map((subKey) => {
+            const subObj = HKDSE_SYLLABUS[subKey];
+            const subQuestions = subjectBreakdown[subObj.name] || [];
+            const isExpanded = expandedSubject === subKey;
+
+            return (
+              <div key={subKey} className="border border-slate-200 rounded-2xl overflow-hidden transition-all">
+                <button
+                  type="button"
+                  onClick={() => setExpandedSubject(isExpanded ? null : subKey)}
+                  className="w-full p-4 bg-slate-50 hover:bg-slate-100 flex items-center justify-between text-left transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-extrabold text-sm text-slate-800">{subObj.name}</span>
+                    <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-indigo-100 text-indigo-700">
+                      {subQuestions.length} Questions
+                    </span>
+                  </div>
+                  {isExpanded ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                </button>
+
+                {isExpanded && (
+                  <div className="p-4 bg-white border-t border-slate-100 space-y-3">
+                    {subQuestions.length === 0 ? (
+                      <p className="text-xs text-slate-400 font-medium italic text-center py-3">No questions uploaded for this subject yet.</p>
+                    ) : (
+                      <div className="space-y-2 max-h-60 overflow-y-auto pr-1 scrollbar-thin">
+                        {subQuestions.map((q, i) => (
+                          <div key={q.id || i} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs gap-3">
+                            <div className="truncate flex-1">
+                              <span className="font-bold text-slate-800 block truncate">
+                                {q.questionText ? q.questionText : `[Diagram Only / No Text]`}
+                              </span>
+                              <span className="text-[10px] font-medium text-slate-400">{q.topic || 'General'}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase shrink-0 ${
+                              q.status === 'mastered' ? 'bg-emerald-100 text-emerald-700' : q.status === 'review' ? 'bg-rose-100 text-rose-700' : 'bg-slate-200 text-slate-600'
+                            }`}>
+                              {q.status || 'unmarked'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Main App Component
 export default function App() {
   const [user, setUser] = useState(null);
   const [localAccount, setLocalAccount] = useState(null);
@@ -1373,6 +1612,9 @@ export default function App() {
   const [view, setView] = useState('library');
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
+
+  // User Preferences
+  const [defaultPublicShare, setDefaultPublicShare] = useState(false);
 
   const activeUser = user || localAccount;
 
@@ -1442,7 +1684,7 @@ export default function App() {
 
   if (loadingAuth) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 to-indigo-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-3">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-400" />
           <span className="text-indigo-200 text-sm font-medium">Loading Workspace...</span>
@@ -1468,86 +1710,118 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+      {/* Responsive Header Bar */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-xl shadow-md shadow-indigo-200">
+        <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
+          
+          {/* Logo Brand */}
+          <div className="flex items-center gap-2.5 shrink-0">
+            <div className="p-2 bg-gradient-to-tr from-indigo-600 to-blue-500 rounded-xl shadow-md shadow-indigo-200">
               <BookOpen className="w-5 h-5 text-white" />
             </div>
-            <div>
-              <h1 className="font-bold text-[15px] leading-tight text-slate-900">My HKDSE Question Bank</h1>
-              <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full inline-block animate-pulse bg-emerald-500"></span>
+            <div className="hidden sm:block">
+              <h1 className="font-bold text-[14px] leading-tight text-slate-900">HKDSE Question Bank</h1>
+              <p className="text-[10px] font-semibold text-slate-500 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full inline-block animate-pulse bg-emerald-500"></span>
                 {displayUsername}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto whitespace-nowrap scrollbar-hide py-2">
+          {/* Navigation Action Buttons - Responsive Icons Only on Mobile */}
+          <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto whitespace-nowrap py-1 scrollbar-hide">
             <button
               onClick={() => setView('library')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 view === 'library' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-200' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
+              title="Library"
             >
               <Library className="w-4 h-4" />
               <span className="hidden sm:inline">Library</span>
             </button>
+
             <button
               onClick={() => setView('review')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 view === 'review' ? 'bg-rose-500 text-white shadow-md shadow-rose-200' : 'bg-slate-100 text-slate-600 hover:bg-rose-100 hover:text-rose-700'
               }`}
+              title="Needs Review"
             >
               <XCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Review</span>
             </button>
+
             <button
               onClick={() => setView('mastered')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 view === 'mastered' ? 'bg-emerald-500 text-white shadow-md shadow-emerald-200' : 'bg-slate-100 text-slate-600 hover:bg-emerald-100 hover:text-emerald-700'
               }`}
+              title="Mastered"
             >
               <CheckCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Mastered</span>
             </button>
+
             <button
               onClick={() => { setView('add'); setEditingQuestion(null); }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 view === 'add' ? 'bg-slate-900 text-white shadow-md shadow-slate-400' : 'bg-slate-800 text-white hover:bg-slate-700 shadow-sm'
               }`}
+              title="Add Question"
             >
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add</span>
             </button>
 
-            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+            <div className="w-px h-5 bg-slate-200 mx-0.5 sm:mx-1"></div>
 
             <button
               onClick={() => setView('community')}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+              className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
                 view === 'community' ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
               }`}
+              title="Community Library"
             >
               <Globe className="w-4 h-4" />
               <span className="hidden sm:inline">Community</span>
             </button>
+
+            <button
+              onClick={() => setView('account')}
+              className={`p-2 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all ${
+                view === 'account' ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-200' : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+              }`}
+              title="My Account"
+            >
+              <User className="w-4 h-4" />
+              <span className="hidden sm:inline">Account</span>
+            </button>
             
-            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+            <div className="w-px h-5 bg-slate-200 mx-0.5 sm:mx-1"></div>
             
             <button
               onClick={handleLogout}
-              className="p-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all"
+              className="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-bold bg-rose-50 text-rose-600 hover:bg-rose-100 transition-all flex items-center gap-1"
               title="Logout"
             >
               <LogOut className="w-4 h-4" />
+              <span className="hidden md:inline">Logout</span>
             </button>
           </div>
         </div>
       </header>
 
+      {/* Main View Router */}
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 py-8">
-        {view === 'community' ? (
+        {view === 'account' ? (
+          <MyAccountDashboardView 
+            user={activeUser}
+            questions={questions}
+            defaultPublicShare={defaultPublicShare}
+            onToggleDefaultPublicShare={setDefaultPublicShare}
+          />
+        ) : view === 'community' ? (
            <CommunityLibraryView 
              db={db} 
              appId={appId} 
@@ -1568,6 +1842,7 @@ export default function App() {
           <AddQuestionView 
             user={activeUser} 
             editData={editingQuestion}
+            defaultPublicShare={defaultPublicShare}
             onSaved={() => { setView('library'); setEditingQuestion(null); }}
             onCancel={() => { setView('library'); setEditingQuestion(null); }}
           />
@@ -1577,7 +1852,7 @@ export default function App() {
   );
 }
 
-// Library View
+// Library View Component
 function LibraryView({ questions, user, currentView, onEdit }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
@@ -1732,9 +2007,11 @@ function LibraryView({ questions, user, currentView, onEdit }) {
           )}
 
           <div className="p-6 space-y-4 flex-1">
-            <div className="text-base font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">
-              {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
-            </div>
+            {q.questionText && (
+              <div className="text-base font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">
+                {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+              </div>
+            )}
             {q.type === 'MC' && q.options && typeof q.options === 'object' && (
               <div className="grid grid-cols-1 gap-3 pt-4">
                 {['A', 'B', 'C', 'D'].map(letter => {
@@ -2001,10 +2278,12 @@ function LibraryView({ questions, user, currentView, onEdit }) {
               )}
 
               <div className="p-5 space-y-4 flex-1">
-                <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
-                  <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
-                  {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
-                </div>
+                {q.questionText && (
+                  <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                    <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
+                    {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+                  </div>
+                )}
 
                 {q.type === 'MC' && q.options && typeof q.options === 'object' && (
                   <div className="grid grid-cols-1 gap-2.5 pt-3">
@@ -2067,8 +2346,8 @@ function LibraryView({ questions, user, currentView, onEdit }) {
   );
 }
 
-// Add/Edit Question View
-function AddQuestionView({ user, editData, onSaved, onCancel }) {
+// Add/Edit Question View Component
+function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, onCancel }) {
   const fileInputRef = useRef(null);
 
   const [ocrEngine, setOcrEngine] = useState('ai');
@@ -2093,7 +2372,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
   const [remarks, setRemarks] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [includeImage, setIncludeImage] = useState(true);
-  const [isSharedPublicly, setIsSharedPublicly] = useState(false);
+  const [isSharedPublicly, setIsSharedPublicly] = useState(defaultPublicShare);
 
   const processImageFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -2157,8 +2436,10 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
         setRawImageSrc(editData.attachedImage);
         setIncludeImage(true);
       }
+    } else {
+      setIsSharedPublicly(defaultPublicShare);
     }
-  }, [editData]);
+  }, [editData, defaultPublicShare]);
 
   const handleAutoSplitOptions = () => {
     if (!questionText) return;
@@ -2229,11 +2510,9 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
         if (parsedOpts) setOptions(parsedOpts);
         setStatus('idle');
       } else {
-        // AI Mode: Process image base64 directly
         const base64Data = attachedImage.split(',')[1];
         const mimeType = 'image/jpeg';
 
-        // Optional non-blocking pre-OCR check
         let localExtractedText = '';
         try {
           localExtractedText = await runLocalOCR(attachedImage);
@@ -2288,12 +2567,8 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
     }
   };
 
-  
   const handleSaveQuestion = async () => {
-    if (!questionText.trim()) {
-      setErrorText('Question Body cannot be empty.');
-      return;
-    }
+    // QUESTION IS NO LONGER A MANDATORY FIELD: If empty, default to empty string without blocking save
     if (!user || !db) {
       setErrorText('Cloud connection or user session not found.');
       return;
@@ -2589,7 +2864,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
             <div>
               <div className="flex justify-between items-center mb-2">
                 <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">
-                  Question Body <span className="text-rose-500 text-sm">*</span>
+                  Question Body <span className="text-slate-400 font-normal text-[10px] uppercase">(Optional)</span>
                 </label>
                 {questionType === 'MC' && questionText && (
                   <button
@@ -2604,8 +2879,8 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
               <MathSymbolToolbar onInsert={(sym) => setQuestionText(prev => (prev || '') + sym)} />
               <textarea
                 rows={5}
+                placeholder="Leave blank if saving an image-only question..."
                 value={questionText}
-                required
                 onChange={(e) => setQuestionText(e.target.value)}
                 className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all resize-y"
               />
@@ -2683,7 +2958,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
 
             <button
               onClick={handleSaveQuestion}
-              disabled={status === 'saving' || !questionText.trim()}
+              disabled={status === 'saving'}
               className="w-full py-4 mt-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-[0.99]"
             >
               {status === 'saving' ? (
