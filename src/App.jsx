@@ -181,7 +181,7 @@ const extractOptionsFromText = (rawText) => {
   return { cleanQuestion: text, options: null };
 };
 
-// Simple Image Loader Helper
+// Simple Image Loader Helper 
 const createImage = (url) =>
   new Promise((resolve, reject) => {
     const image = new Image();
