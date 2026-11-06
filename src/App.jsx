@@ -784,8 +784,8 @@ function AuthView({ onLoginSuccess }) {
                  Choose between using the <strong>Built-in Public Key</strong> (ready immediately) or your <strong>Custom API Key</strong>:
                </p>
                <ul className="space-y-2 text-xs leading-relaxed pl-4 list-disc marker:text-amber-500/70">
-                 <li><strong>Built-in Public Key:</strong> Enabled by default for all users.</li>
-                 <li><strong>Custom Key:</strong> Get your key free from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a>.</li>
+                 <li><strong>Built-in Public Key:</strong> Enabled by default for all users, aka burning my tokens. Up to 500 processings per day on the whole server.</li>
+                 <li><strong>Custom Key:</strong> (VPN required) Get your key free from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a>.</li>
                </ul>
              </div>
            </div>
