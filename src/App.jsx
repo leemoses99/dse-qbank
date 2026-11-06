@@ -225,6 +225,32 @@ const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
   return finalCanvas.toDataURL('image/jpeg', 0.8);
 };
 
+// Global Image Rotation Utility
+const rotateBase64Image = (base64, direction = 'cw') => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.height;
+      canvas.height = img.width;
+      const ctx = canvas.getContext('2d');
+      
+      if (direction === 'cw') {
+        ctx.translate(canvas.width, 0);
+        ctx.rotate(90 * Math.PI / 180);
+      } else {
+        ctx.translate(0, canvas.height);
+        ctx.rotate(-90 * Math.PI / 180);
+      }
+      
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
+    img.src = base64;
+  });
+};
+
 // Tesseract Local OCR
 const runLocalOCR = async (imageFile) => {
   if (!window.Tesseract) {
@@ -684,9 +710,19 @@ function LibraryView({ questions, user, currentView, onEdit }) {
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleAnswers, setVisibleAnswers] = useState({});
+  const [localImages, setLocalImages] = useState({});
 
   const toggleAnswer = (id) => {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleRotateView = async (id, base64, direction) => {
+    try {
+      const rotated = await rotateBase64Image(localImages[id] || base64, direction);
+      setLocalImages(prev => ({ ...prev, [id]: rotated }));
+    } catch (err) {
+      console.error("Rotate error", err);
+    }
   };
 
   const toggleStatus = async (id, newStatus) => {
@@ -821,7 +857,7 @@ function LibraryView({ questions, user, currentView, onEdit }) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredQuestions.map((q) => (
-            <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group">
+            <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group/card">
               
               <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
@@ -881,8 +917,29 @@ function LibraryView({ questions, user, currentView, onEdit }) {
 
               {q.attachedImage && (
                 <div className="px-5 pt-4">
-                  <div className="rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex items-center justify-center p-2">
-                    <img src={q.attachedImage} alt="Diagram" className="max-h-56 object-contain rounded-xl mix-blend-multiply" />
+                  <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex flex-col items-center justify-center p-2 group/img">
+                    <img 
+                      src={localImages[q.id] || q.attachedImage} 
+                      alt="Diagram" 
+                      className="max-h-56 object-contain rounded-xl mix-blend-multiply transition-all" 
+                    />
+                    
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 opacity-0 group-hover/img:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleRotateView(q.id, q.attachedImage, 'ccw')}
+                        className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+                        title="Rotate Left"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleRotateView(q.id, q.attachedImage, 'cw')}
+                        className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+                        title="Rotate Right"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1065,6 +1122,17 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     setRawImageSrc(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = ''; 
+    }
+  };
+
+  const handleRotatePreview = async (direction) => {
+    if (!imagePreview) return;
+    try {
+      const rotated = await rotateBase64Image(imagePreview, direction);
+      setImagePreview(rotated);
+      setAttachedImage(rotated);
+    } catch (err) {
+      setErrorText('Failed to rotate image.');
     }
   };
 
@@ -1311,17 +1379,39 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
           ) : (
             <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-64 border border-slate-200 shadow-inner group flex items-center justify-center">
               <img src={imagePreview} alt="Target" className="max-w-full max-h-full object-contain" />
-              <button
-                onClick={() => {
-                  setImageFile(null);
-                  setImagePreview(null);
-                  setAttachedImage(null);
-                  setIncludeImage(true);
-                }}
-                className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              
+              <div className="absolute top-3 right-3 flex flex-col sm:flex-row items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleRotatePreview('ccw')}
+                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-slate-700 transition-colors"
+                  title="Rotate Left"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRotatePreview('cw')}
+                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-slate-700 transition-colors"
+                  title="Rotate Right"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </button>
+                <div className="w-px h-4 bg-white/20 hidden sm:block mx-1"></div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                    setAttachedImage(null);
+                    setIncludeImage(true);
+                  }}
+                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors"
+                  title="Remove Image"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
           
