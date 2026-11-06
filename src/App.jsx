@@ -62,17 +62,7 @@ import {
   Globe,
   Download,
   Users
-} from 'lucide-react';
-
-// --- API KEYS POOLING ---
-const PUBLIC_KEYS = [
-  "AQ.Ab8RN6Jw0L8P19PHEk9LMqcZlRHPmL4U0UNaBVPbMbc6Jlz23g",
-  "AQ.Ab8RN6LFJAomjhhWXIe8qEFIMjUm6nLae2EriRmQGU0tIbaQug",
-  "AQ.Ab8RN6Kj9hce8QuQiYYUE1TG9kZ5T8LaaTJxtRVxYJ1mzWbDKQ"
-];
-
-const getRandomApiKey = () => {
-  return PUBLIC_KEYS[Math.floor(Math.random() * PUBLIC_KEYS.length)];
+} from 'lucide-react'
 };
 
 // --- MOTIVATIONAL QUOTES ---
@@ -266,8 +256,8 @@ const runLocalOCR = async (imageFile) => {
 };
 
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, preExtractedText = '') => {
-  const effectiveKey = getRandomApiKey();
-  const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini?key=${effectiveKey}`;
+  // Server handles API key rotation securely
+  const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini`;
 
   const prompt = `You are an expert HKDSE exam question analyzer. 
 Analyze the question image and pre-extracted OCR text below:
@@ -300,6 +290,35 @@ CRITICAL RULES:
       difficulty: { type: "INTEGER" }
     }
   };
+
+  const requestBody = JSON.stringify({
+    contents: [{ role: 'user', parts: parts }],
+    generationConfig: { responseMimeType: 'application/json', responseSchema: responseSchema, temperature: 0.1 }
+  });
+
+  const response = await fetch(primaryEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: requestBody
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API Request Failed (${response.status}): ${errText}`);
+  }
+
+  const jsonRes = await response.json();
+  const rawText = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
+  
+  if (!rawText) throw new Error("AI returned an empty response.");
+
+  try {
+    const cleanJson = rawText.replace(/```json\n?|\n?```/g, '').trim();
+    return JSON.parse(cleanJson);
+  } catch (err) {
+    throw new Error("Failed to parse AI output into structured format.");
+  }
+};
 
   const requestBody = JSON.stringify({
     contents: [{ role: 'user', parts: parts }],
