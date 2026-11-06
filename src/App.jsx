@@ -198,25 +198,24 @@ const compressImage = (file) => {
 };
 
 // Image Rotation (90 Degrees Clockwise)
-const rotateImageBase64 = (base64data) => {
+const rotateImageBase64 = (imageSrc) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.src = base64data;
+    img.crossOrigin = "Anonymous"; // Prevents canvas tainting issues
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      // Swap width and height for 90-degree rotation
       canvas.width = img.height;
       canvas.height = img.width;
       const ctx = canvas.getContext('2d');
       
-      // Move to center, rotate, draw, move back
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((90 * Math.PI) / 180);
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
       
       resolve(canvas.toDataURL('image/jpeg', 0.8));
     };
-    img.onerror = reject;
+    img.onerror = () => reject(new Error("Failed to load image for rotation"));
+    img.src = imageSrc;
   });
 };
 
@@ -1033,16 +1032,24 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   };
 
   const handleRotateImage = async () => {
-    if (!attachedImage) return;
+    // Grab whichever image source is currently available
+    const sourceImage = attachedImage || imagePreview; 
+    if (!sourceImage) return;
+
     try {
-      setStatus('scanning');
-      const rotatedBase64 = await rotateImageBase64(attachedImage);
+      setStatus('scanning'); // Shows the loading spinner
+      setErrorText('');
+      
+      const rotatedBase64 = await rotateImageBase64(sourceImage);
+      
       setAttachedImage(rotatedBase64);
       setImagePreview(rotatedBase64);
+      setImageFile(null); // Clear raw file so OCR is forced to use the rotated image
+      
       setStatus('idle');
     } catch (err) {
       console.error("Failed to rotate image:", err);
-      setErrorText("Failed to rotate image.");
+      setErrorText("Failed to rotate image. Please try again.");
       setStatus('idle');
     }
   };
