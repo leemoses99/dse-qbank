@@ -46,7 +46,6 @@ import {
   Wand2,
   AlertCircle,
   Info,
-  Globe2,
   Sparkles,
   Clock,
   Image as ImageIcon,
@@ -65,8 +64,16 @@ import {
   Users
 } from 'lucide-react';
 
-// --- DEFAULT PUBLIC API KEY ---
-const DEFAULT_PUBLIC_KEY = "AQ.Ab8RN6Jw0L8P19PHEk9LMqcZlRHPmL4U0UNaBVPbMbc6Jlz23g";
+// --- API KEYS POOLING ---
+const PUBLIC_KEYS = [
+  "AQ.Ab8RN6Jw0L8P19PHEk9LMqcZlRHPmL4U0UNaBVPbMbc6Jlz23g",
+  "AQ.Ab8RN6LFJAomjhhWXIe8qEFIMjUm6nLae2EriRmQGU0tIbaQug",
+  "AQ.Ab8RN6Kj9hce8QuQiYYUE1TG9kZ5T8LaaTJxtRVxYJ1mzWbDKQ"
+];
+
+const getRandomApiKey = () => {
+  return PUBLIC_KEYS[Math.floor(Math.random() * PUBLIC_KEYS.length)];
+};
 
 // --- MOTIVATIONAL QUOTES ---
 const MOTIVATIONAL_QUOTES = [
@@ -246,7 +253,7 @@ const runLocalOCR = async (imageFile) => {
   if (!window.Tesseract) {
     await new Promise((resolve, reject) => {
       const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.min.js@5/dist/tesseract.min.js';
       script.onload = resolve;
       script.onerror = () => reject(new Error('Could not load browser OCR engine script.'));
       document.head.appendChild(script);
@@ -258,10 +265,8 @@ const runLocalOCR = async (imageFile) => {
   return result?.data?.text || '';
 };
 
-const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
-  const effectiveKey = apiKey || DEFAULT_PUBLIC_KEY;
-  if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key or choose the default key option.');
-
+const runGeminiAIOCR = async (base64Image, mimeType, questionType, preExtractedText = '') => {
+  const effectiveKey = getRandomApiKey();
   const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini?key=${effectiveKey}`;
 
   const prompt = `You are an expert HKDSE exam question analyzer. 
@@ -675,12 +680,21 @@ function AuthView({ onLoginSuccess }) {
   const [loading, setLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [quoteIdx, setQuoteIdx] = useState(0);
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  // Live Clock Update
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // Motivational Quote interval timer
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
-    }, 120000); // 120,000 ms = 2 minutes
+    }, 120000);
     return () => clearInterval(interval);
   }, []);
 
@@ -797,6 +811,11 @@ function AuthView({ onLoginSuccess }) {
 
         <div className={`w-full md:w-[480px] bg-slate-800/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl transition-all duration-300 ${showGuide ? 'block' : 'hidden md:block'}`}>
            
+           <div className="flex items-center gap-2 bg-indigo-950/80 text-indigo-200 px-3.5 py-2 rounded-xl border border-indigo-500/30 mb-6 text-xs font-mono font-bold w-fit shadow-inner">
+             <Clock className="w-4 h-4 text-indigo-400 animate-pulse" />
+             <span>{currentTime.toLocaleString()}</span>
+           </div>
+
            <div className="bg-indigo-900/40 p-6 rounded-2xl border border-indigo-500/30 mb-6 relative overflow-hidden shadow-inner">
              <Quote className="w-20 h-20 text-indigo-500/10 absolute -top-4 -left-4 rotate-180" />
              <p className="text-[15px] text-indigo-50 italic relative z-10 font-medium leading-relaxed min-h-[48px] flex items-center">
@@ -809,25 +828,14 @@ function AuthView({ onLoginSuccess }) {
            </h3>
            <div className="space-y-6 text-sm text-slate-300">
              <div>
-               <h4 className="font-bold text-white mb-2 flex items-center gap-2">
-                 <BookOpen className="w-4 h-4 text-emerald-400" /> 1. Features
+               <h4 className="font-bold text-white mb-3 flex items-center gap-2">
+                 <BookOpen className="w-4 h-4 text-emerald-400" /> Usage Instructions & Guidelines
                </h4>
-               <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
+               <ul className="space-y-2.5 pl-6 list-disc marker:text-indigo-400">
                  <li><strong>Community Library:</strong> Browse and save public questions shared by other students.</li>
                  <li><strong>Flashcard Mode:</strong> Turn your saved questions into a powerful, distraction-free study deck.</li>
-                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic.</li>
-               </ul>
-             </div>
-             <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
-               <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                 <Key className="w-4 h-4 text-amber-400" /> 2. Gemini AI Key Options
-               </h4>
-               <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-                 Choose between using the <strong>Built-in Public Key</strong> (ready immediately) or your <strong>Custom API Key</strong>:
-               </p>
-               <ul className="space-y-2 text-xs leading-relaxed pl-4 list-disc marker:text-amber-500/70">
-                 <li><strong>Built-in Public Key:</strong> Enabled by default for all users, aka burning my tokens. Up to 500 processings per day on the whole server.</li>
-                 <li><strong>Custom Key:</strong> (VPN required) Get your key free from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a>.</li>
+                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic using key rotation.</li>
+                 <li className="text-amber-300 font-semibold">Extract text whenever you can and don't keep pictures on the server.</li>
                </ul>
              </div>
            </div>
@@ -838,7 +846,7 @@ function AuthView({ onLoginSuccess }) {
   );
 }
 
-// Updated Community Library View Component with Filters and Flashcard Mode
+// Community Library View Component
 function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   const [communityQuestions, setCommunityQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -855,7 +863,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   const [fcIndex, setFcIndex] = useState(0);
   const [fcFlipped, setFcFlipped] = useState(false);
 
-  // Reset Flashcard position whenever filters change
   useEffect(() => {
     setFcIndex(0);
     setFcFlipped(false);
@@ -944,7 +951,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
     );
   }
 
-  // Flashcard View Mode for Community Questions
   if (isFlashcardMode && filteredQuestions.length > 0) {
     const validFcIndex = Math.min(fcIndex, filteredQuestions.length - 1);
     const q = filteredQuestions[validFcIndex];
@@ -1117,7 +1123,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         </div>
       </div>
 
-      {/* Filter Bar & Flashcard Launcher */}
       <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
         <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
@@ -1316,7 +1321,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   );
 }
 
-
 // Main App Output UI
 export default function App() {
   const [user, setUser] = useState(null);
@@ -1324,21 +1328,11 @@ export default function App() {
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
-  const [view, setView] = useState('library'); // library | review | mastered | add | community
+  const [view, setView] = useState('library');
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
-  const [userApiKey, setUserApiKey] = useState('');
 
   const activeUser = user || localAccount;
-
-  useEffect(() => {
-    if (userApiKey && activeUser && db && hasPassedAuthScreen) {
-      const userRef = doc(db, 'artifacts', appId, 'users', activeUser.uid, 'settings', 'profile');
-      setDoc(userRef, { apiKey: userApiKey }, { merge: true }).catch(err => 
-        console.warn("Cloud profile save error:", err)
-      );
-    }
-  }, [userApiKey, activeUser, hasPassedAuthScreen]);
 
   useEffect(() => {
     if (!auth) {
@@ -1358,15 +1352,6 @@ export default function App() {
       if (usr) {
         setHasPassedAuthScreen(true);
         setLocalAccount(null);
-        if (db) {
-          try {
-            const userRef = doc(db, 'artifacts', appId, 'users', usr.uid, 'settings', 'profile');
-            const snap = await getDoc(userRef);
-            if (snap.exists() && snap.data().apiKey) {
-              setUserApiKey(snap.data().apiKey);
-            }
-          } catch (e) {}
-        }
       }
     });
     return () => unsub();
@@ -1390,7 +1375,6 @@ export default function App() {
     setLocalAccount(null);
     setUser(null);
     setHasPassedAuthScreen(false);
-    setUserApiKey('');
     setQuestions([]);
   };
 
@@ -1401,7 +1385,6 @@ export default function App() {
       const cloneData = { ...q };
       delete cloneData.id; 
       
-      // Reset properties for personal library
       cloneData.isSharedPublicly = false; 
       cloneData.status = 'unmarked';
       cloneData.createdAt = new Date().toISOString();
@@ -1542,8 +1525,6 @@ export default function App() {
         ) : (
           <AddQuestionView 
             user={activeUser} 
-            userApiKey={userApiKey} 
-            setUserApiKey={setUserApiKey}
             editData={editingQuestion}
             onSaved={() => { setView('library'); setEditingQuestion(null); }}
             onCancel={() => { setView('library'); setEditingQuestion(null); }}
@@ -1567,7 +1548,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
   const [fcIndex, setFcIndex] = useState(0);
   const [fcFlipped, setFcFlipped] = useState(false);
 
-  // Reset Flashcard session if filters change
   useEffect(() => {
     setFcIndex(0);
     setFcFlipped(false);
@@ -1626,7 +1606,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
     return true;
   });
 
-  // Render Flashcard View Interface
   if (isFlashcardMode && filteredQuestions.length > 0) {
     const validFcIndex = Math.min(fcIndex, filteredQuestions.length - 1);
     const q = filteredQuestions[validFcIndex];
@@ -1785,7 +1764,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
     );
   }
 
-  // Regular Grid Render...
   return (
     <div className="space-y-6">
       {currentView === 'review' && (
@@ -1864,7 +1842,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
             </div>
         </div>
 
-        {/* Flashcard Launch Button */}
         <div className="flex items-end">
            <button
              onClick={() => {
@@ -1936,7 +1913,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
                 </div>
               </div>
 
-              {/* Topic & Star Difficulty Bar */}
               <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
@@ -2056,12 +2032,11 @@ function LibraryView({ questions, user, currentView, onEdit }) {
 }
 
 // Add/Edit Question View
-function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, onCancel }) {
+function AddQuestionView({ user, editData, onSaved, onCancel }) {
   const fileInputRef = useRef(null);
 
   const [ocrEngine, setOcrEngine] = useState('ai');
-  const [keyOption, setKeyOption] = useState('default');
-  const [rateSource, setRateSource] = useState('self'); // 'self' | 'ai'
+  const [rateSource, setRateSource] = useState('self');
   const [difficulty, setDifficulty] = useState(3);
 
   const [imageFile, setImageFile] = useState(null);
@@ -2069,7 +2044,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const [status, setStatus] = useState('idle');
   const [errorText, setErrorText] = useState('');
 
-  // Stationary Corner Cropper States
   const [rawImageSrc, setRawImageSrc] = useState(null);
   const [isCropping, setIsCropping] = useState(false);
 
@@ -2100,7 +2074,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     setImageFile(file);
   }, []);
 
-  // GLOBAL CLIPBOARD PASTE EVENT LISTENER (Ctrl+V / Cmd+V)
   useEffect(() => {
     const handlePaste = (e) => {
       const items = e.clipboardData?.items;
@@ -2126,12 +2099,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       setTopic(HKDSE_SYLLABUS[newSubject].topics[0]);
     }
   };
-
-  useEffect(() => {
-    if (userApiKey) {
-      setKeyOption('custom');
-    }
-  }, [userApiKey]);
 
   useEffect(() => {
     if (editData) {
@@ -2221,14 +2188,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         if (parsedOpts) setOptions(parsedOpts);
         setStatus('idle');
       } else {
-        const effectiveKey = keyOption === 'default' ? DEFAULT_PUBLIC_KEY : userApiKey;
-        
-        if (keyOption === 'custom' && !userApiKey.trim()) {
-          setErrorText('Please enter your custom Gemini API key or switch to the Built-in Public Key.');
-          setStatus('idle');
-          return;
-        }
-
         const [localExtractedText, imagePayload] = await Promise.all([
           runLocalOCR(attachedImage),
           (async () => {
@@ -2237,7 +2196,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         ]);
 
         try {
-          const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, effectiveKey, localExtractedText);
+          const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, localExtractedText);
           
           if (aiData.subject) {
             const detectedSub = String(aiData.subject).toLowerCase();
@@ -2398,60 +2357,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               <FileText className="w-4 h-4" /> Local OCR (Fallback)
             </button>
           </div>
-
-          {ocrEngine === 'ai' && (
-            <div className="pt-2 space-y-3">
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Select Gemini Key Option</label>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setKeyOption('default')}
-                  className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all ${
-                    keyOption === 'default' 
-                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 ring-2 ring-emerald-500/20' 
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Built-in Public Key
-                  </span>
-                  {keyOption === 'default' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setKeyOption('custom')}
-                  className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all ${
-                    keyOption === 'custom' 
-                      ? 'bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/20' 
-                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Key className="w-4 h-4 text-indigo-600" /> Use My Own Key
-                  </span>
-                  {keyOption === 'custom' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
-                </button>
-              </div>
-
-              {keyOption === 'custom' && (
-                <div className="pt-1">
-                  <input
-                    type="password"
-                    placeholder="Paste your custom Gemini API Key..."
-                    value={userApiKey}
-                    onChange={(e) => setUserApiKey(e.target.value)}
-                    className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
-                  />
-                </div>
-              )}
-
-              <div className="text-xs text-emerald-800 bg-emerald-50/80 p-3 rounded-xl border border-emerald-200 flex items-start gap-2 shadow-sm">
-                <Globe2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
-                <p className="leading-relaxed"><strong>No VPN Required:</strong> Requests are routed via the US proxy server. Gemini AI functions seamlessly in Hong Kong.</p>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="space-y-4">
@@ -2725,7 +2630,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               </div>
             )}
 
-            {/* Community Share Toggle */}
             <div className="flex items-center gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
                <input
                  type="checkbox"
