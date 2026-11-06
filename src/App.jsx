@@ -62,7 +62,7 @@ import {
   Globe,
   Download,
   Users
-} from 'lucide-react'
+} from 'lucide-react';
 
 // --- MOTIVATIONAL QUOTES ---
 const MOTIVATIONAL_QUOTES = [
@@ -255,7 +255,6 @@ const runLocalOCR = async (imageFile) => {
 };
 
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, preExtractedText = '') => {
-  // Server handles API key rotation securely
   const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini`;
 
   const prompt = `You are an expert HKDSE exam question analyzer. 
@@ -265,9 +264,9 @@ ${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
 CRITICAL RULES:
 1. "subject": Auto-detect subject ("Biology", "Chemistry", "Economics", "M1", "M2", "Math Compulsory", or "Physics").
 2. "topic": Auto-detect the relevant HKDSE sub-topic for the question based on standard HKDSE curriculum topics.
-3. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
-4. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D.
-5. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.
+3. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. Preserve and accurately convert all scientific notations (e.g., 3.0 × 10^8 or 3.0 × 10⁸), exponents, fractions, and mathematical/scientific symbols (e.g., θ, π, √, ±, ≤, ≥, °, °C, Δ, Ω, ∫, α, β). DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
+4. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D. Preserve scientific notation and mathematical symbols accurately.
+5. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic with exact mathematical symbols.
 6. "difficulty": Estimate question difficulty on a scale from 1 to 5 (1 = Very Easy, 2 = Easy, 3 = Moderate, 4 = Hard, 5 = Extremely Challenging DSE level). Return an integer between 1 and 5.`;
 
   const parts = [{ text: prompt }];
@@ -319,33 +318,44 @@ CRITICAL RULES:
   }
 };
 
-  const requestBody = JSON.stringify({
-    contents: [{ role: 'user', parts: parts }],
-    generationConfig: { responseMimeType: 'application/json', responseSchema: responseSchema, temperature: 0.1 }
-  });
+// --- MATH SYMBOL TOOLBAR COMPONENT ---
+function MathSymbolToolbar({ onInsert }) {
+  const symbols = [
+    { label: '×10ⁿ', value: '×10^' },
+    { label: 'xⁿ', value: '^' },
+    { label: 'xₙ', value: '_' },
+    { label: 'π', value: 'π' },
+    { label: 'θ', value: 'θ' },
+    { label: '√', value: '√' },
+    { label: '±', value: '±' },
+    { label: '≤', value: '≤' },
+    { label: '≥', value: '≥' },
+    { label: '°', value: '°' },
+    { label: '×', value: '×' },
+    { label: '÷', value: '÷' },
+    { label: 'Δ', value: 'Δ' },
+    { label: 'α', value: 'α' },
+    { label: 'β', value: 'β' },
+    { label: 'Ω', value: 'Ω' },
+    { label: '∫', value: '∫' }
+  ];
 
-  const response = await fetch(primaryEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: requestBody
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Gemini API Request Failed (${response.status}): ${errText}`);
-  }
-
-  const jsonRes = await response.json();
-  const rawText = jsonRes?.candidates?.[0]?.content?.parts?.[0]?.text;
-  
-  if (!rawText) throw new Error("AI returned an empty response.");
-
-  try {
-    const cleanJson = rawText.replace(/```json\n?|\n?```/g, '').trim();
-    return JSON.parse(cleanJson);
-  } catch (err) {
-    throw new Error("Failed to parse AI output into structured format.");
-  }
+  return (
+    <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-100/90 border border-slate-200 rounded-xl my-2">
+      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mr-1">Math Quick Insert:</span>
+      {symbols.map((s, idx) => (
+        <button
+          key={idx}
+          type="button"
+          onClick={() => onInsert(s.value)}
+          className="px-2 py-1 text-xs font-mono font-bold bg-white text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-lg shadow-sm transition-all active:scale-95"
+        >
+          {s.label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // --- STAR RATING COMPONENT ---
 function StarRating({ value = 3, onChange, readonly = false, size = "md" }) {
@@ -699,7 +709,6 @@ function AuthView({ onLoginSuccess }) {
   const [quoteIdx, setQuoteIdx] = useState(0);
   const [currentTime, setCurrentTime] = useState(new Date());
 
-  // Live Clock Update
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
@@ -707,7 +716,6 @@ function AuthView({ onLoginSuccess }) {
     return () => clearInterval(timer);
   }, []);
 
-  // Motivational Quote interval timer
   useEffect(() => {
     const interval = setInterval(() => {
       setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
@@ -851,7 +859,7 @@ function AuthView({ onLoginSuccess }) {
                <ul className="space-y-2.5 pl-6 list-disc marker:text-indigo-400">
                  <li><strong>Community Library:</strong> Browse and save public questions shared by other students.</li>
                  <li><strong>Flashcard Mode:</strong> Turn your saved questions into a powerful, distraction-free study deck.</li>
-                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic using key rotation.</li>
+                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, scientific notation, and math symbols.</li>
                  <li className="text-amber-300 font-semibold">Extract text whenever you can and don't keep pictures on the server.</li>
                </ul>
              </div>
@@ -870,12 +878,10 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   const [visibleAnswers, setVisibleAnswers] = useState({});
   const [fetchError, setFetchError] = useState(null);
 
-  // Filter States
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Flashcard Mode States
   const [isFlashcardMode, setIsFlashcardMode] = useState(false);
   const [fcIndex, setFcIndex] = useState(0);
   const [fcFlipped, setFcFlipped] = useState(false);
@@ -944,17 +950,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         <p className="text-sm font-medium text-red-700 max-w-md mx-auto mb-6">
           {fetchError}
         </p>
-        <div className="text-left text-sm bg-white p-5 rounded-xl border border-red-100 text-red-900 shadow-inner">
-          <p className="font-extrabold mb-3 text-red-700 uppercase tracking-wider text-xs">How to fix this in Firebase:</p>
-          <ul className="list-disc pl-5 space-y-3">
-            <li>
-              If the error says <strong>"requires an index"</strong>: Open your browser's Developer Tools (Press F12), look at the Console tab, find the error link provided by Firebase, and click it to auto-build the index.
-            </li>
-            <li>
-              If the error says <strong>"Missing or insufficient permissions"</strong>: Go to your Firebase Console, click "Firestore Database", go to the "Rules" tab, and ensure you have allowed read access to shared questions.
-            </li>
-          </ul>
-        </div>
       </div>
     );
   }
@@ -988,7 +983,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
 
     return (
       <div className="max-w-2xl mx-auto space-y-6">
-        
         <div className="flex items-center justify-between bg-white px-5 py-4 rounded-2xl border border-slate-200 shadow-sm">
           <button 
             onClick={() => setIsFlashcardMode(false)}
@@ -1002,7 +996,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col relative min-h-[500px]">
-          
           <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
@@ -1123,7 +1116,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
             Next <ArrowRight className="w-5 h-5" />
           </button>
         </div>
-
       </div>
     );
   }
@@ -1222,7 +1214,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredQuestions.map((q) => (
             <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group/card">
-              
               <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
@@ -1560,7 +1551,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
   const [visibleAnswers, setVisibleAnswers] = useState({});
   const [localImages, setLocalImages] = useState({});
 
-  // Flashcard States
   const [isFlashcardMode, setIsFlashcardMode] = useState(false);
   const [fcIndex, setFcIndex] = useState(0);
   const [fcFlipped, setFcFlipped] = useState(false);
@@ -1643,7 +1633,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
 
     return (
       <div className="max-w-2xl mx-auto space-y-6">
-        
         <div className="flex items-center justify-between bg-white px-5 py-4 rounded-2xl border border-slate-200 shadow-sm">
           <button 
             onClick={() => setIsFlashcardMode(false)}
@@ -1657,7 +1646,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
         </div>
 
         <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col relative min-h-[500px]">
-          
           <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
@@ -1776,7 +1764,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
             Next <ArrowRight className="w-5 h-5" />
           </button>
         </div>
-
       </div>
     );
   }
@@ -1889,7 +1876,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {filteredQuestions.map((q) => (
             <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group/card">
-              
               <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
@@ -2039,7 +2025,6 @@ function LibraryView({ questions, user, currentView, onEdit }) {
                   </div>
                 </div>
               )}
-
             </div>
           ))}
         </div>
@@ -2584,6 +2569,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
                   </button>
                 )}
               </div>
+              <MathSymbolToolbar onInsert={(sym) => setQuestionText(prev => (prev || '') + sym)} />
               <textarea
                 rows={5}
                 value={questionText}
@@ -2612,6 +2598,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Marking Scheme / Answer</label>
+              <MathSymbolToolbar onInsert={(sym) => setAnswerText(prev => (prev || '') + sym)} />
               <textarea
                 rows={3}
                 value={answerText}
@@ -2622,6 +2609,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
 
             <div>
               <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Remarks / Notes</label>
+              <MathSymbolToolbar onInsert={(sym) => setRemarks(prev => (prev || '') + sym)} />
               <textarea
                 rows={2}
                 placeholder="e.g. Remember to check units, use formula X..."
