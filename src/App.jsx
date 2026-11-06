@@ -47,10 +47,11 @@ import {
   Clock,
   Image as ImageIcon,
   RotateCcw,
-  RotateCw
+  RotateCw,
+  Crop
 } from 'lucide-react';
 
-// --- HKDSE SYLLABUS DATA STRUCTURE (Alphabetical Order) ---
+// --- HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
   "biology": {
     name: "Biology",
@@ -154,7 +155,7 @@ try {
   console.warn("Firebase Setup Warning:", e);
 }
 
-// Regex Option Extractor Fallback
+// Option Extraction
 const extractOptionsFromText = (rawText) => {
   if (!rawText) return { cleanQuestion: '', options: null };
   const text = rawText.trim();
@@ -175,7 +176,7 @@ const extractOptionsFromText = (rawText) => {
   return { cleanQuestion: text, options: null };
 };
 
-// Image Compression Helpers
+// Image Utilities
 const createImage = (url) =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -208,7 +209,7 @@ const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
   );
 
   const finalCanvas = document.createElement('canvas');
-  const MAX_WIDTH = 800;
+  const MAX_WIDTH = 1000;
   let scale = 1;
   if (pixelCrop.width > MAX_WIDTH) scale = MAX_WIDTH / pixelCrop.width;
   
@@ -222,10 +223,9 @@ const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
 
   finalCanvas.getContext('2d').drawImage(intermediateCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
 
-  return finalCanvas.toDataURL('image/jpeg', 0.8);
+  return finalCanvas.toDataURL('image/jpeg', 0.85);
 };
 
-// Global Image Rotation Utility
 const rotateBase64Image = (base64, direction = 'cw') => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -244,14 +244,14 @@ const rotateBase64Image = (base64, direction = 'cw') => {
       }
       
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.8));
+      resolve(canvas.toDataURL('image/jpeg', 0.85));
     };
     img.onerror = reject;
     img.src = base64;
   });
 };
 
-// Tesseract Local OCR
+// OCR Engines
 const runLocalOCR = async (imageFile) => {
   if (!window.Tesseract) {
     await new Promise((resolve, reject) => {
@@ -268,7 +268,6 @@ const runLocalOCR = async (imageFile) => {
   return result?.data?.text || '';
 };
 
-// Gemini 3.1 Flash Lite OCR
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
   const effectiveKey = apiKey || '';
   if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
@@ -282,7 +281,7 @@ ${preExtractedText ? `RAW OCR TEXT:\n"${preExtractedText}"\n` : ''}
 CRITICAL RULES:
 1. "subject": Auto-detect subject ("Biology", "Chemistry", "Economics", "M1", "M2", "Math Compulsory", or "Physics").
 2. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
-3. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D. Even if the OCR misread the letters (e.g., read 'A' as '@', 'B' as '8', or mangled them), use the visual layout and context from the image to correctly assign them to A, B, C, D. Strip the letter prefixes from the final option text.
+3. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D.
 4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.`;
 
   const parts = [{ text: prompt }];
@@ -332,7 +331,7 @@ CRITICAL RULES:
   }
 };
 
-// --- AUTHENTICATION VIEW WITH USAGE GUIDE ---
+// Auth Component
 function AuthView({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -385,16 +384,13 @@ function AuthView({ onLoginSuccess }) {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 flex items-center justify-center p-4 font-sans text-slate-800">
       <div className="max-w-4xl w-full flex flex-col md:flex-row gap-6 items-start justify-center">
         
-        {/* LOGIN CARD */}
         <div className="bg-white/95 backdrop-blur-sm w-full md:w-[420px] rounded-3xl p-8 shadow-2xl border border-white/10 shrink-0">
            <div className="text-center mb-8">
               <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-4 rounded-2xl inline-block mb-5 shadow-lg shadow-blue-600/30">
                  <BookOpen className="w-8 h-8 text-white" />
               </div>
               <h2 className="text-2xl font-black text-slate-900 tracking-tight">HKDSE Hub</h2>
-              <p className="text-sm text-slate-500 mt-2 font-medium">
-                Your intelligent exam revision bank.
-              </p>
+              <p className="text-sm text-slate-500 mt-2 font-medium">Your intelligent exam revision bank.</p>
            </div>
            
            {error && (
@@ -454,51 +450,27 @@ function AuthView({ onLoginSuccess }) {
            </div>
         </div>
 
-        {/* USAGE GUIDE CARD */}
         <div className={`w-full md:w-[480px] bg-slate-800/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl transition-all duration-300 ${showGuide ? 'block' : 'hidden md:block'}`}>
            <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-300">
              <Sparkles className="w-6 h-6" /> Welcome to the Hub
            </h3>
-           
            <div className="space-y-6 text-sm text-slate-300">
-             
              <div>
                <h4 className="font-bold text-white mb-2 flex items-center gap-2">
                  <BookOpen className="w-4 h-4 text-emerald-400" /> 1. Core Functions
                </h4>
                <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
-                 <li><strong>Snap & Store:</strong> Take photos of DSE past papers (MC or LQ).</li>
-                 <li><strong>AI Separation:</strong> Automatically extracts questions, options (A/B/C/D), and marks the correct topic.</li>
-                 <li><strong>Library & Status:</strong> Label your questions with a <span className="text-emerald-400 font-bold">Tick</span> (Mastered) or <span className="text-rose-400 font-bold">Cross</span> (Needs Review) to track your revision progress easily!</li>
+                 <li><strong>Snap & Store:</strong> Take photos of DSE past papers.</li>
+                 <li><strong>AI Separation:</strong> Auto extracts questions, options, and topics.</li>
+                 <li><strong>Progress Tracking:</strong> Tag questions with Tick or Cross to manage review.</li>
                </ul>
              </div>
-
              <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
                <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                 <Key className="w-4 h-4 text-amber-400" /> 2. Setting Up Gemini AI (Free)
+                 <Key className="w-4 h-4 text-amber-400" /> 2. Gemini AI Key Setup
                </h4>
-               <ol className="space-y-2 pl-4 list-decimal marker:text-amber-500/70 text-xs leading-relaxed">
-                 <li>Go to <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a>.</li>
-                 <li>Sign in with your Google Account.</li>
-                 <li>Click <strong>"Get API Key"</strong> and create a new key.</li>
-                 <li>Copy the key. Once you log in here and click "Add", paste it into the <strong>Gemini API Key</strong> box.</li>
-               </ol>
+               <p className="text-xs text-slate-300">Get your key for free from Google AI Studio and enter it into app settings.</p>
              </div>
-
-             <div className="bg-rose-950/30 p-5 rounded-2xl border border-rose-900/50">
-               <h4 className="font-bold text-rose-300 mb-2 flex items-center gap-2">
-                 <Globe2 className="w-4 h-4" /> 3. Important: VPN Requirement
-               </h4>
-               <p className="text-xs leading-relaxed text-rose-200/80">
-                 Google's Gemini AI services are currently <strong>restricted in Hong Kong</strong>. 
-                 To use the AI OCR (which automatically separates MC options and auto-detects subjects), 
-                 <strong> you MUST turn on a VPN</strong> (e.g., connected to US, UK, Taiwan, or Japan).
-               </p>
-               <p className="text-xs leading-relaxed text-rose-200/80 mt-2">
-                 <em>If you don't use a VPN, the app will fall back to Local OCR, which only dumps raw text without intelligent formatting.</em>
-               </p>
-             </div>
-
            </div>
         </div>
 
@@ -507,14 +479,14 @@ function AuthView({ onLoginSuccess }) {
   );
 }
 
-// --- MAIN APP COMPONENT ---
+// Main App
 export default function App() {
   const [user, setUser] = useState(null);
   const [localAccount, setLocalAccount] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
-  const [view, setView] = useState('library'); // 'library' | 'review' | 'mastered' | 'add'
+  const [view, setView] = useState('library');
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [userApiKey, setUserApiKey] = useState('');
@@ -704,7 +676,7 @@ export default function App() {
   );
 }
 
-// --- LIBRARY VIEW COMPONENT ---
+// Library View
 function LibraryView({ questions, user, currentView, onEdit }) {
   const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
   const [selectedTopic, setSelectedTopic] = useState('all');
@@ -774,7 +746,7 @@ function LibraryView({ questions, user, currentView, onEdit }) {
           </div>
           <div>
             <h2 className="font-extrabold text-base">Needs Review</h2>
-            <p className="text-sm font-medium text-rose-700/80">Questions you marked with a Cross to revisit later.</p>
+            <p className="text-sm font-medium text-rose-700/80">Questions marked with Cross for revision.</p>
           </div>
         </div>
       )}
@@ -786,7 +758,7 @@ function LibraryView({ questions, user, currentView, onEdit }) {
           </div>
           <div>
             <h2 className="font-extrabold text-base">Mastered Questions</h2>
-            <p className="text-sm font-medium text-emerald-700/80">Questions you marked with a Tick that you have fully understood.</p>
+            <p className="text-sm font-medium text-emerald-700/80">Questions marked as fully understood.</p>
           </div>
         </div>
       )}
@@ -847,12 +819,8 @@ function LibraryView({ questions, user, currentView, onEdit }) {
           <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
              <BookOpen className="w-8 h-8 text-slate-300" />
           </div>
-          <h3 className="font-extrabold text-slate-700 text-lg mb-2">
-            {currentView === 'review' ? 'No review questions found' : currentView === 'mastered' ? 'No mastered questions found' : 'No questions match your filter'}
-          </h3>
-          <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">
-            {currentView === 'review' || currentView === 'mastered' ? 'Use the Tick and Cross buttons on your questions to organize them.' : 'Try resetting your filters or add a new question to your bank.'}
-          </p>
+          <h3 className="font-extrabold text-slate-700 text-lg mb-2">No questions found</h3>
+          <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Try resetting your filters or add a new question to your bank.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -928,14 +896,14 @@ function LibraryView({ questions, user, currentView, onEdit }) {
                       <button
                         onClick={() => handleRotateView(q.id, q.attachedImage, 'ccw')}
                         className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
-                        title="Rotate Left"
+                        title="Rotate Left 90°"
                       >
                         <RotateCcw className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleRotateView(q.id, q.attachedImage, 'cw')}
                         className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
-                        title="Rotate Right"
+                        title="Rotate Right 90°"
                       >
                         <RotateCw className="w-4 h-4" />
                       </button>
@@ -1012,7 +980,7 @@ function LibraryView({ questions, user, currentView, onEdit }) {
   );
 }
 
-// --- ADD & EDIT QUESTION VIEW COMPONENT ---
+// Add/Edit Question View
 function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, onCancel }) {
   const fileInputRef = useRef(null);
 
@@ -1022,7 +990,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const [status, setStatus] = useState('idle');
   const [errorText, setErrorText] = useState('');
 
-  // Cropper States
+  // Cropper & Free Rotation States
   const [rawImageSrc, setRawImageSrc] = useState(null);
   const [isCropping, setIsCropping] = useState(false);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -1065,6 +1033,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       if (editData.attachedImage) {
         setAttachedImage(editData.attachedImage);
         setImagePreview(editData.attachedImage);
+        setRawImageSrc(editData.attachedImage);
         setIncludeImage(true);
       }
     }
@@ -1101,6 +1070,16 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     setImageFile(file);
   };
 
+  const openRecropModal = () => {
+    if (attachedImage || rawImageSrc) {
+      setRawImageSrc(attachedImage || rawImageSrc);
+      setIsCropping(true);
+      setCrop({ x: 0, y: 0 });
+      setZoom(1);
+      setRotation(0);
+    }
+  };
+
   const handleCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
@@ -1119,8 +1098,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
 
   const handleCancelCrop = () => {
     setIsCropping(false);
-    setRawImageSrc(null);
-    if (fileInputRef.current) {
+    if (!attachedImage && fileInputRef.current) {
       fileInputRef.current.value = ''; 
     }
   };
@@ -1131,6 +1109,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       const rotated = await rotateBase64Image(imagePreview, direction);
       setImagePreview(rotated);
       setAttachedImage(rotated);
+      setRawImageSrc(rotated);
     } catch (err) {
       setErrorText('Failed to rotate image.');
     }
@@ -1246,37 +1225,104 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   };
 
+  // Modern Cropper Modal with 4 Corner Draggable Handles & Continuous Free Rotation Slider
   if (isCropping) {
     return (
       <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
+        <style>{`
+          .reactCropperArea {
+            border: 2px solid #6366f1 !important;
+            box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.65) !important;
+          }
+          .reactCropperArea::before, .reactCropperArea::after {
+            content: '';
+            position: absolute;
+            box-sizing: border-box;
+          }
+          .reactCropperArea::before {
+            top: -6px; bottom: -6px; left: -6px; right: -6px;
+            border-top: 6px solid #818cf8;
+            border-bottom: 6px solid #818cf8;
+            pointer-events: none;
+          }
+          .reactCropperArea::after {
+            top: -6px; bottom: -6px; left: -6px; right: -6px;
+            border-left: 6px solid #818cf8;
+            border-right: 6px solid #818cf8;
+            pointer-events: none;
+          }
+        `}</style>
+
         <div className="flex-1 relative">
           <Cropper
             image={rawImageSrc}
             crop={crop}
             zoom={zoom}
             rotation={rotation}
+            aspect={undefined}
+            showGrid={true}
+            cropSize={undefined}
+            classes={{ cropAreaClassName: 'reactCropperArea' }}
             onCropChange={setCrop}
             onRotationChange={setRotation}
             onCropComplete={handleCropComplete}
             onZoomChange={setZoom}
           />
         </div>
-        <div className="bg-slate-900 p-6 border-t border-slate-800 flex flex-col sm:flex-row gap-4 justify-between items-center text-white shrink-0">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
-            <button type="button" onClick={() => setRotation(r => r - 90)} className="px-4 py-2.5 bg-slate-800 rounded-xl hover:bg-slate-700 flex items-center gap-2 text-sm font-bold transition-colors">
-              <RotateCcw className="w-4 h-4" /> Rotate Left
-            </button>
-            <button type="button" onClick={() => setRotation(r => r + 90)} className="px-4 py-2.5 bg-slate-800 rounded-xl hover:bg-slate-700 flex items-center gap-2 text-sm font-bold transition-colors">
-              <RotateCw className="w-4 h-4" /> Rotate Right
-            </button>
+
+        <div className="bg-slate-900 p-5 border-t border-slate-800 flex flex-col gap-4 text-white shrink-0">
+          <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
+            <div className="flex items-center gap-2 shrink-0">
+              <button 
+                type="button" 
+                onClick={() => setRotation(r => (r - 90 + 360) % 360)} 
+                className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 text-xs font-bold flex items-center gap-1 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" /> -90°
+              </button>
+              <button 
+                type="button" 
+                onClick={() => setRotation(r => (r + 90) % 360)} 
+                className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 text-xs font-bold flex items-center gap-1 transition-colors"
+              >
+                <RotateCw className="w-3.5 h-3.5" /> +90°
+              </button>
+            </div>
+
+            <div className="flex-1 flex items-center gap-3 w-full">
+              <span className="text-xs font-bold text-slate-400 shrink-0">Free Rotation:</span>
+              <input 
+                type="range" 
+                min={0} 
+                max={360} 
+                value={rotation} 
+                onChange={(e) => setRotation(Number(e.target.value))}
+                className="w-full accent-indigo-500 h-1.5 bg-slate-600 rounded-lg cursor-pointer"
+              />
+              <span className="text-xs font-mono font-bold text-indigo-400 shrink-0 w-10 text-right">{Math.round(rotation)}°</span>
+            </div>
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
-            <button type="button" onClick={handleCancelCrop} className="px-6 py-2.5 bg-slate-800 text-rose-400 rounded-xl font-bold hover:bg-slate-700 transition-colors text-sm w-full sm:w-auto">
-              Cancel
-            </button>
-            <button type="button" onClick={saveCrop} className="px-6 py-2.5 bg-emerald-600 rounded-xl font-bold hover:bg-emerald-700 transition-colors text-sm flex items-center gap-2 shadow-lg shadow-emerald-900/50 w-full sm:w-auto">
-              <CheckCircle className="w-4 h-4" /> Crop & Save
-            </button>
+
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-xs text-slate-400 hidden sm:inline font-medium">
+              Drag corners/edges to crop. Use slider above to straighten image.
+            </span>
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+              <button 
+                type="button" 
+                onClick={handleCancelCrop} 
+                className="px-5 py-2.5 bg-slate-800 text-rose-400 rounded-xl font-bold hover:bg-slate-700 transition-colors text-xs w-full sm:w-auto"
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                onClick={saveCrop} 
+                className="px-6 py-2.5 bg-emerald-600 rounded-xl font-bold hover:bg-emerald-700 transition-colors text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/50 w-full sm:w-auto"
+              >
+                <CheckCircle className="w-4 h-4" /> Apply Crop & Rotation
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1377,41 +1423,52 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               <p className="text-xs text-indigo-500 mt-2 font-medium">Capture the question block clearly.</p>
             </div>
           ) : (
-            <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-64 border border-slate-200 shadow-inner group flex items-center justify-center">
-              <img src={imagePreview} alt="Target" className="max-w-full max-h-full object-contain" />
-              
-              <div className="absolute top-3 right-3 flex flex-col sm:flex-row items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleRotatePreview('ccw')}
-                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-slate-700 transition-colors"
-                  title="Rotate Left"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleRotatePreview('cw')}
-                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-slate-700 transition-colors"
-                  title="Rotate Right"
-                >
-                  <RotateCw className="w-4 h-4" />
-                </button>
-                <div className="w-px h-4 bg-white/20 hidden sm:block mx-1"></div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setImageFile(null);
-                    setImagePreview(null);
-                    setAttachedImage(null);
-                    setIncludeImage(true);
-                  }}
-                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors"
-                  title="Remove Image"
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            <div className="space-y-3">
+              <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-64 border border-slate-200 shadow-inner group flex items-center justify-center">
+                <img src={imagePreview} alt="Target" className="max-w-full max-h-full object-contain" />
+                
+                <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur p-1 rounded-xl border border-slate-700">
+                  <button
+                    type="button"
+                    onClick={() => handleRotatePreview('ccw')}
+                    className="p-2 text-white hover:text-indigo-400 transition-colors"
+                    title="Rotate Left 90°"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleRotatePreview('cw')}
+                    className="p-2 text-white hover:text-indigo-400 transition-colors"
+                    title="Rotate Right 90°"
+                  >
+                    <RotateCw className="w-4 h-4" />
+                  </button>
+                  <div className="w-px h-4 bg-slate-700 mx-0.5"></div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                      setAttachedImage(null);
+                      setRawImageSrc(null);
+                      setIncludeImage(true);
+                    }}
+                    className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                    title="Remove Image"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
+
+              <button
+                type="button"
+                onClick={openRecropModal}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200 transition-all"
+              >
+                <Crop className="w-4 h-4 text-indigo-600" /> Recrop & Straighten Image
+              </button>
             </div>
           )}
           
