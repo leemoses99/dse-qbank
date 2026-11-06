@@ -843,11 +843,14 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   const [communityQuestions, setCommunityQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visibleAnswers, setVisibleAnswers] = useState({});
+  const [fetchError, setFetchError] = useState(null); // <-- NEW: Track Firebase errors
 
   useEffect(() => {
     const fetchCommunity = async () => {
       try {
         setLoading(true);
+        setFetchError(null);
+        
         // Using a standard query on collectionGroup
         const q = query(
           collectionGroup(db, 'questions'),
@@ -857,25 +860,47 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         const snap = await getDocs(q);
         let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // Sort in memory to avoid Firebase Composite Index requirement for users
+        // Sort in memory to avoid Firebase Composite Index requirement for sorting
         data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        
-        // FIX: Removed the filter that hid your own uploads from the feed
-        // so you can verify your shared questions are appearing in the community.
         
         setCommunityQuestions(data);
       } catch (err) {
         console.error("Error fetching community questions:", err);
+        setFetchError(err.message); // <-- Catch and save error for UI
       } finally {
         setLoading(false);
       }
     };
-    fetchCommunity();
+    if (db) fetchCommunity();
   }, [db, user]);
 
   const toggleAnswer = (id) => {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
   };
+
+  // --- NEW: Handle explicit database access errors (Rules or Index) ---
+  if (fetchError) {
+    return (
+      <div className="bg-red-50 rounded-3xl border border-red-200 p-8 text-center shadow-sm max-w-2xl mx-auto">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h3 className="font-extrabold text-red-900 text-xl mb-2">Database Access Blocked</h3>
+        <p className="text-sm font-medium text-red-700 max-w-md mx-auto mb-6">
+          {fetchError}
+        </p>
+        <div className="text-left text-sm bg-white p-5 rounded-xl border border-red-100 text-red-900 shadow-inner">
+          <p className="font-extrabold mb-3 text-red-700 uppercase tracking-wider text-xs">How to fix this in Firebase:</p>
+          <ul className="list-disc pl-5 space-y-3">
+            <li>
+              If the error says <strong>"requires an index"</strong>: Open your browser's Developer Tools (Press F12), look at the Console tab, find the error link provided by Firebase, and click it to auto-build the index.
+            </li>
+            <li>
+              If the error says <strong>"Missing or insufficient permissions"</strong>: Go to your Firebase Console, click "Firestore Database", go to the "Rules" tab, and ensure you have allowed read access to shared questions.
+            </li>
+          </ul>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -924,7 +949,7 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
                 </span>
               </div>
               
-              {/* FIX: Disable download button for the user's own uploads */}
+              {/* Disable download button for the user's own uploads */}
               {q.uploadedBy !== user?.uid ? (
                 <button
                   onClick={() => onSaveToLibrary(q)}
