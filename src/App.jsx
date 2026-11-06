@@ -236,7 +236,7 @@ const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preEx
   const effectiveKey = apiKey || DEFAULT_PUBLIC_KEY;
   if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key or choose the default key option.');
 
-  const primaryEndpoint = `https://dse-qbank.leemoses484.workers.dev/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
+  const primaryEndpoint = `https://https://dse-qbank.vercel.app/api/gemini?key=${effectiveKey}`;
 
   const prompt = `You are an expert HKDSE exam question analyzer. 
 Analyze the question image and pre-extracted OCR text below:
