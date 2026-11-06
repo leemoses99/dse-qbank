@@ -48,7 +48,9 @@ import {
   RotateCcw,
   RotateCw,
   Crop,
-  ShieldCheck
+  ShieldCheck,
+  Star,
+  Clipboard
 } from 'lucide-react';
 
 // --- DEFAULT PUBLIC API KEY ---
@@ -244,7 +246,8 @@ CRITICAL RULES:
 1. "subject": Auto-detect subject ("Biology", "Chemistry", "Economics", "M1", "M2", "Math Compulsory", or "Physics").
 2. "question": Extract ONLY the main question body text. INTELLIGENTLY separate this from the options. Clean up any OCR artifacts. DO NOT include the multiple choice options (A, B, C, D) or their corrupted OCR equivalents in this string. 
 3. "options": Intelligently identify and map the 4 multiple choice options into keys A, B, C, and D.
-4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.`;
+4. "answer": Extract correct option letter (A, B, C, or D) or handwritten solution logic.
+5. "difficulty": Estimate question difficulty on a scale from 1 to 5 (1 = Very Easy, 2 = Easy, 3 = Moderate, 4 = Hard, 5 = Extremely Challenging DSE level). Return an integer between 1 and 5.`;
 
   const parts = [{ text: prompt }];
   if (base64Image) {
@@ -260,7 +263,8 @@ CRITICAL RULES:
         type: "OBJECT",
         properties: { A: { type: "STRING" }, B: { type: "STRING" }, C: { type: "STRING" }, D: { type: "STRING" } }
       },
-      answer: { type: "STRING" }
+      answer: { type: "STRING" },
+      difficulty: { type: "INTEGER" }
     }
   };
 
@@ -292,6 +296,32 @@ CRITICAL RULES:
     throw new Error("Failed to parse AI output into structured format.");
   }
 };
+
+// --- STAR RATING COMPONENT ---
+function StarRating({ value = 3, onChange, readonly = false, size = "md" }) {
+  const iconSize = size === "sm" ? "w-3.5 h-3.5" : "w-5 h-5";
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((star) => (
+        <button
+          key={star}
+          type="button"
+          disabled={readonly}
+          onClick={() => onChange && onChange(star)}
+          className={`${readonly ? 'cursor-default' : 'cursor-pointer hover:scale-110'} transition-transform focus:outline-none`}
+        >
+          <Star
+            className={`${iconSize} ${
+              star <= value
+                ? 'fill-amber-400 text-amber-400'
+                : 'fill-slate-100 text-slate-300'
+            }`}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 // --- CUSTOM STATIONARY 4-CORNER CROPPER COMPONENT ---
 function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
@@ -735,12 +765,13 @@ function AuthView({ onLoginSuccess }) {
            <div className="space-y-6 text-sm text-slate-300">
              <div>
                <h4 className="font-bold text-white mb-2 flex items-center gap-2">
-                 <BookOpen className="w-4 h-4 text-emerald-400" /> 1. Core Functions
+                 <BookOpen className="w-4 h-4 text-emerald-400" /> 1. Features
                </h4>
                <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
-                 <li><strong>Snap & Store:</strong> Take photos of DSE past papers.</li>
-                 <li><strong>AI Separation:</strong> Auto extracts questions, options, and topics.</li>
-                 <li><strong>Progress Tracking:</strong> Tag questions with Tick or Cross to manage review.</li>
+                 <li><strong>Paste Clipboard Images:</strong> Press <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Ctrl+V</code> or <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Cmd+V</code> anywhere on screen to paste images directly.</li>
+                 <li><strong>Question Difficulty:</strong> Rate question difficulty from 1 to 5 stars manually or let AI estimate it automatically.</li>
+                 <li><strong>AI OCR Extraction:</strong> Auto extracts questions, MC options, and subjects.</li>
+                 <li><strong>Progress Tracking:</strong> Tag questions with Tick or Cross for revision.</li>
                </ul>
              </div>
              <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
@@ -748,11 +779,11 @@ function AuthView({ onLoginSuccess }) {
                  <Key className="w-4 h-4 text-amber-400" /> 2. Gemini AI Key Options
                </h4>
                <p className="text-xs text-slate-300 mb-3 leading-relaxed">
-                 You can choose between using the <strong>Built-in Public Key</strong> (ready to use immediately) or your <strong>Custom API Key</strong>:
+                 Choose between using the <strong>Built-in Public Key</strong> (ready immediately) or your <strong>Custom API Key</strong>:
                </p>
                <ul className="space-y-2 text-xs leading-relaxed pl-4 list-disc marker:text-amber-500/70">
-                 <li><strong>Built-in Public Key:</strong> Enabled by default for all users. No configuration needed.</li>
-                 <li><strong>Custom Key:</strong> Get your key free from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a> and paste it in setting for dedicated quota.</li>
+                 <li><strong>Built-in Public Key:</strong> Enabled by default for all users.</li>
+                 <li><strong>Custom Key:</strong> Get your key free from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a>.</li>
                </ul>
              </div>
            </div>
@@ -1151,19 +1182,25 @@ function LibraryView({ questions, user, currentView, onEdit }) {
                 </div>
               </div>
 
-              {q.topic && (
-                <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400 mt-0.5">Topic</span>
-                    <span className="leading-tight">{q.topic}</span>
+              {/* Topic & Star Difficulty Bar */}
+              <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
+                  <span className="leading-tight">{q.topic || 'General'}</span>
+                </div>
+
+                <div className="flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60">
+                  <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Difficulty:</span>
+                  <StarRating value={q.difficulty || 3} readonly size="sm" />
+                </div>
+              </div>
+
+              {q.createdAt && (
+                <div className="px-5 pt-2 flex justify-end">
+                  <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
+                    <Clock className="w-3 h-3" />
+                    {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
                   </div>
-                  
-                  {q.createdAt && (
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 mt-0.5 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">
-                      <Clock className="w-3 h-3" />
-                      {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' })}
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -1269,7 +1306,10 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const fileInputRef = useRef(null);
 
   const [ocrEngine, setOcrEngine] = useState('ai');
-  const [keyOption, setKeyOption] = useState('default'); // 'default' | 'custom'
+  const [keyOption, setKeyOption] = useState('default');
+  const [rateSource, setRateSource] = useState('self'); // 'self' | 'ai'
+  const [difficulty, setDifficulty] = useState(3);
+
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [status, setStatus] = useState('idle');
@@ -1289,6 +1329,40 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const [remarks, setRemarks] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [includeImage, setIncludeImage] = useState(true);
+
+  const processImageFile = useCallback((file) => {
+    if (!file || !file.type.startsWith('image/')) {
+      setErrorText('Please paste or upload a valid image file.');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setRawImageSrc(reader.result);
+      setIsCropping(true);
+      setErrorText('');
+    };
+    reader.readAsDataURL(file);
+    setImageFile(file);
+  }, []);
+
+  // GLOBAL CLIPBOARD PASTE EVENT LISTENER (Ctrl+V / Cmd+V)
+  useEffect(() => {
+    const handlePaste = (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].type.indexOf('image') !== -1) {
+          const blob = items[i].getAsFile();
+          if (blob) {
+            processImageFile(blob);
+            break;
+          }
+        }
+      }
+    };
+    window.addEventListener('paste', handlePaste);
+    return () => window.removeEventListener('paste', handlePaste);
+  }, [processImageFile]);
 
   const handleSubjectChange = (e) => {
     const newSubject = e.target.value;
@@ -1317,6 +1391,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       setAnswerText(editData.answerText || '');
       setOptions(editData.options || { A: '', B: '', C: '', D: '' });
       setRemarks(editData.remarks || '');
+      setDifficulty(editData.difficulty || 3);
       if (editData.attachedImage) {
         setAttachedImage(editData.attachedImage);
         setImagePreview(editData.attachedImage);
@@ -1337,21 +1412,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
 
   const handleFilePicked = (e) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setErrorText('Please choose an image file.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setRawImageSrc(reader.result);
-      setIsCropping(true);
-      setErrorText('');
-    };
-    reader.readAsDataURL(file);
-    setImageFile(file);
+    if (file) processImageFile(file);
   };
 
   const openRecropModal = () => {
@@ -1445,6 +1506,13 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             setQuestionText(cleanQuestion);
             if (parsedOpts) setOptions(parsedOpts);
           }
+
+          // Apply AI difficulty rating if AI Rating is selected
+          if (rateSource === 'ai' && aiData.difficulty && Number.isInteger(aiData.difficulty)) {
+            const clamped = Math.max(1, Math.min(5, aiData.difficulty));
+            setDifficulty(clamped);
+          }
+
           setStatus('idle');
         } catch (aiErr) {
           console.warn("AI Structure Analysis failed, falling back to raw local text:", aiErr);
@@ -1485,6 +1553,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         answerText: answerText.trim(),
         options: questionType === 'MC' ? options : null,
         remarks: remarks.trim(),
+        difficulty: Number(difficulty) || 3,
         attachedImage: includeImage ? attachedImage : null,
         status: editData ? editData.status || 'unmarked' : 'unmarked' 
       };
@@ -1638,13 +1707,18 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
           {!imagePreview ? (
             <div
               onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl p-10 text-center cursor-pointer transition-all flex flex-col items-center group"
+              className="border-2 border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl p-8 text-center cursor-pointer transition-all flex flex-col items-center group relative"
             >
               <div className="p-4 bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 transition-transform">
                 <Camera className="w-8 h-8 text-indigo-500" />
               </div>
               <h3 className="font-extrabold text-indigo-900 text-sm">Take Photo / Upload Image</h3>
-              <p className="text-xs text-indigo-500 mt-2 font-medium">Capture the question block clearly.</p>
+              <p className="text-xs text-indigo-500 mt-1 font-medium">Click to choose file or snap photo.</p>
+              
+              <div className="mt-4 flex items-center gap-1.5 bg-indigo-100/80 text-indigo-900 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm">
+                <Clipboard className="w-3.5 h-3.5 text-indigo-600" /> 
+                <span>Or press <strong>Ctrl+V</strong> / <strong>Cmd+V</strong> to paste copied screenshot</span>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1717,11 +1791,53 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         {status === 'scanning' ? (
           <div className="flex flex-col items-center justify-center p-10 space-y-4 bg-slate-50 rounded-3xl border border-slate-100">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            <p className="text-sm text-slate-600 font-bold">Extracting & Analyzing Content...</p>
+            <p className="text-sm text-slate-600 font-bold">Extracting Content & Estimating Difficulty...</p>
           </div>
         ) : (
           <div className="space-y-6 pt-6 border-t border-slate-200">
-            <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">3. Review & Save</label>
+            <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">3. Question Difficulty Rating</label>
+            
+            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <span className="text-xs font-bold text-slate-600">Rating Mode:</span>
+                <div className="flex items-center gap-2 bg-white p-1 rounded-xl border border-slate-200 shadow-sm">
+                  <button
+                    type="button"
+                    onClick={() => setRateSource('self')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rateSource === 'self' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    Self Rate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setRateSource('ai')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${rateSource === 'ai' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}
+                  >
+                    Ask AI to Rate
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+                <div>
+                  <span className="text-xs font-bold text-slate-700 block">Difficulty Score</span>
+                  <span className="text-[11px] text-slate-400 font-medium">
+                    {rateSource === 'ai' 
+                      ? 'AI will automatically assess question difficulty when scanning.' 
+                      : 'Click stars to rate yourself from 1 (Very Easy) to 5 (Extremely Hard).'}
+                  </span>
+                </div>
+                <StarRating 
+                  value={difficulty} 
+                  onChange={(val) => {
+                    setDifficulty(val);
+                    setRateSource('self');
+                  }} 
+                />
+              </div>
+            </div>
+
+            <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">4. Review & Save</label>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
