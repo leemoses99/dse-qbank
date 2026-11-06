@@ -838,12 +838,28 @@ function AuthView({ onLoginSuccess }) {
   );
 }
 
-// Community Library View Component
+// Updated Community Library View Component with Filters and Flashcard Mode
 function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
   const [communityQuestions, setCommunityQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visibleAnswers, setVisibleAnswers] = useState({});
-  const [fetchError, setFetchError] = useState(null); // <-- NEW: Track Firebase errors
+  const [fetchError, setFetchError] = useState(null);
+
+  // Filter States
+  const [selectedSubjectKey, setSelectedSubjectKey] = useState('all');
+  const [selectedTopic, setSelectedTopic] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Flashcard Mode States
+  const [isFlashcardMode, setIsFlashcardMode] = useState(false);
+  const [fcIndex, setFcIndex] = useState(0);
+  const [fcFlipped, setFcFlipped] = useState(false);
+
+  // Reset Flashcard position whenever filters change
+  useEffect(() => {
+    setFcIndex(0);
+    setFcFlipped(false);
+  }, [selectedSubjectKey, selectedTopic, searchQuery]);
 
   useEffect(() => {
     const fetchCommunity = async () => {
@@ -851,7 +867,6 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         setLoading(true);
         setFetchError(null);
         
-        // Using a standard query on collectionGroup
         const q = query(
           collectionGroup(db, 'questions'),
           where('isSharedPublicly', '==', true),
@@ -860,13 +875,11 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         const snap = await getDocs(q);
         let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         
-        // Sort in memory to avoid Firebase Composite Index requirement for sorting
         data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-        
         setCommunityQuestions(data);
       } catch (err) {
         console.error("Error fetching community questions:", err);
-        setFetchError(err.message); // <-- Catch and save error for UI
+        setFetchError(err.message);
       } finally {
         setLoading(false);
       }
@@ -878,7 +891,27 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  // --- NEW: Handle explicit database access errors (Rules or Index) ---
+  const subjectKeys = Object.keys(HKDSE_SYLLABUS);
+  const activeTopics = selectedSubjectKey !== 'all' ? HKDSE_SYLLABUS[selectedSubjectKey].topics : [];
+
+  const filteredQuestions = communityQuestions.filter(q => {
+    if (selectedSubjectKey !== 'all') {
+      const subjectObj = HKDSE_SYLLABUS[selectedSubjectKey];
+      if (q.subject !== subjectObj.name) return false;
+    }
+    if (selectedTopic !== 'all' && q.topic !== selectedTopic) return false;
+    if (searchQuery.trim()) {
+      const queryStr = searchQuery.toLowerCase();
+      const matchText = (q.questionText || '').toLowerCase();
+      const matchTopic = (q.topic || '').toLowerCase();
+      const matchAuthor = (q.authorName || '').toLowerCase();
+      if (!matchText.includes(queryStr) && !matchTopic.includes(queryStr) && !matchAuthor.includes(queryStr)) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   if (fetchError) {
     return (
       <div className="bg-red-50 rounded-3xl border border-red-200 p-8 text-center shadow-sm max-w-2xl mx-auto">
@@ -911,14 +944,163 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
     );
   }
 
-  if (communityQuestions.length === 0) {
+  // Flashcard View Mode for Community Questions
+  if (isFlashcardMode && filteredQuestions.length > 0) {
+    const validFcIndex = Math.min(fcIndex, filteredQuestions.length - 1);
+    const q = filteredQuestions[validFcIndex];
+
+    const nextCard = () => {
+      if (validFcIndex < filteredQuestions.length - 1) {
+        setFcIndex(validFcIndex + 1);
+        setFcFlipped(false);
+      }
+    };
+    
+    const prevCard = () => {
+      if (validFcIndex > 0) {
+        setFcIndex(validFcIndex - 1);
+        setFcFlipped(false);
+      }
+    };
+
     return (
-      <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-16 text-center shadow-sm">
-        <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
-           <Users className="w-8 h-8 text-slate-300" />
+      <div className="max-w-2xl mx-auto space-y-6">
+        
+        <div className="flex items-center justify-between bg-white px-5 py-4 rounded-2xl border border-slate-200 shadow-sm">
+          <button 
+            onClick={() => setIsFlashcardMode(false)}
+            className="text-slate-500 hover:text-indigo-600 font-bold text-sm flex items-center gap-2 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Exit Flashcards
+          </button>
+          <div className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200">
+            Card {validFcIndex + 1} of {filteredQuestions.length}
+          </div>
         </div>
-        <h3 className="font-extrabold text-slate-700 text-lg mb-2">No public questions yet</h3>
-        <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Be the first to share a question with the community!</p>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col relative min-h-[500px]">
+          
+          <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                {q.subject || 'HKDSE'}
+              </span>
+              <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                {q.type === 'MC' ? 'MC' : 'LQ'}
+              </span>
+            </div>
+            
+            {q.uploadedBy !== user?.uid ? (
+              <button
+                onClick={() => onSaveToLibrary(q)}
+                className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <Download className="w-4 h-4" /> Save to My Library
+              </button>
+            ) : (
+              <span className="px-3 py-1.5 bg-indigo-50/50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-500 flex items-center gap-1.5 shadow-sm">
+                <CheckCircle2 className="w-4 h-4" /> Shared by You
+              </span>
+            )}
+          </div>
+
+          <div className="px-6 pt-5 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
+              <span className="leading-tight">{q.topic || 'General'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60">
+              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Difficulty:</span>
+              <StarRating value={q.difficulty || 3} readonly size="sm" />
+            </div>
+          </div>
+
+          <div className="px-6 pt-2 flex justify-between items-center">
+            <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+              <Users className="w-3 h-3" /> Shared by: {q.uploadedBy === user?.uid ? 'You' : (q.authorName || 'Anonymous User')}
+            </div>
+          </div>
+
+          {q.attachedImage && (
+            <div className="px-6 pt-5">
+              <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex flex-col items-center justify-center p-2 group/img">
+                <img 
+                  src={q.attachedImage} 
+                  alt="Diagram" 
+                  className="max-h-64 object-contain rounded-xl mix-blend-multiply transition-all" 
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 space-y-4 flex-1">
+            <div className="text-base font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">
+              {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+            </div>
+            {q.type === 'MC' && q.options && typeof q.options === 'object' && (
+              <div className="grid grid-cols-1 gap-3 pt-4">
+                {['A', 'B', 'C', 'D'].map(letter => {
+                  const optVal = q.options[letter];
+                  if (!optVal) return null;
+                  return (
+                    <div key={letter} className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm flex items-start gap-3">
+                      <span className="font-extrabold text-indigo-600 bg-white w-6 h-6 rounded-md border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm">{letter}</span>
+                      <span className="text-slate-700 font-medium pt-0.5">{String(optVal)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="px-6 pb-6 mt-auto">
+             {!fcFlipped ? (
+                <button
+                  onClick={() => setFcFlipped(true)}
+                  className="w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-2xl border border-indigo-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Eye className="w-5 h-5" /> Reveal Answer
+                </button>
+             ) : (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-100 pt-4">
+                  {q.answerText && (
+                    <div className="p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium shadow-sm">
+                      <span className="font-extrabold font-sans block mb-2 text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                         <CheckCircle2 className="w-4 h-4" /> Marking Scheme / Answer
+                      </span>
+                      {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                    </div>
+                  )}
+                  {q.remarks && (
+                    <div className="p-5 bg-amber-50/80 border border-amber-200 rounded-2xl text-sm text-amber-900 whitespace-pre-wrap font-medium shadow-sm">
+                      <span className="font-extrabold font-sans block mb-2 text-amber-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                         <Info className="w-4 h-4" /> Remarks / Notes
+                      </span>
+                      {q.remarks}
+                    </div>
+                  )}
+                </div>
+             )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <button 
+            onClick={prevCard} 
+            disabled={validFcIndex === 0}
+            className="flex-1 py-4 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white text-slate-700 font-bold rounded-2xl border border-slate-200 flex items-center justify-center gap-2 shadow-sm transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" /> Previous
+          </button>
+          <button 
+            onClick={nextCard} 
+            disabled={validFcIndex === filteredQuestions.length - 1}
+            className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transition-all active:scale-[0.98]"
+          >
+            Next <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+
       </div>
     );
   }
@@ -935,121 +1117,201 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-        {communityQuestions.map((q) => (
-          <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group/card">
-            
-            <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
-                  {q.subject || 'HKDSE'}
-                </span>
-                <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
-                  {q.type === 'MC' ? 'MC' : 'LQ'}
-                </span>
-              </div>
-              
-              {/* Disable download button for the user's own uploads */}
-              {q.uploadedBy !== user?.uid ? (
-                <button
-                  onClick={() => onSaveToLibrary(q)}
-                  className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all shadow-sm"
-                >
-                  <Download className="w-4 h-4" /> Save to My Library
-                </button>
-              ) : (
-                <span className="px-3 py-1.5 bg-indigo-50/50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-500 flex items-center gap-1.5 shadow-sm">
-                  <CheckCircle2 className="w-4 h-4" /> Shared by You
-                </span>
-              )}
+      {/* Filter Bar & Flashcard Launcher */}
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Subject</label>
+            <div className="relative">
+              <select
+                value={selectedSubjectKey}
+                onChange={(e) => {
+                  setSelectedSubjectKey(e.target.value);
+                  setSelectedTopic('all');
+                }}
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+              >
+                <option value="all">All Subjects</option>
+                {subjectKeys.map(k => (
+                  <option key={k} value={k}>{HKDSE_SYLLABUS[k].name}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
             </div>
-
-            <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
-                <span className="leading-tight">{q.topic || 'General'}</span>
-              </div>
-              <div className="flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60">
-                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Difficulty:</span>
-                <StarRating value={q.difficulty || 3} readonly size="sm" />
-              </div>
-            </div>
-
-            <div className="px-5 pt-2 flex justify-between items-center">
-              <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                <Users className="w-3 h-3" /> Shared by: {q.uploadedBy === user?.uid ? 'You' : (q.authorName || 'Anonymous User')}
-              </div>
-              {q.createdAt && (
-                <div className="text-[10px] font-bold text-slate-400">
-                  {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
-                </div>
-              )}
-            </div>
-
-            {q.attachedImage && (
-              <div className="px-5 pt-4">
-                <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex flex-col items-center justify-center p-2 group/img">
-                  <img 
-                    src={q.attachedImage} 
-                    alt="Diagram" 
-                    className="max-h-56 object-contain rounded-xl mix-blend-multiply transition-all" 
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="p-5 space-y-4 flex-1">
-              <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
-                <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
-                {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
-              </div>
-
-              {q.type === 'MC' && q.options && typeof q.options === 'object' && (
-                <div className="grid grid-cols-1 gap-2.5 pt-3">
-                  {['A', 'B', 'C', 'D'].map(letter => {
-                    const optVal = q.options[letter];
-                    if (!optVal) return null;
-                    return (
-                      <div key={letter} className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex items-start gap-3 shadow-sm">
-                        <span className="font-extrabold text-indigo-600 bg-indigo-50 w-6 h-6 rounded-md flex items-center justify-center shrink-0">{letter}</span>
-                        <span className="text-slate-700 font-medium pt-0.5">{String(optVal)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {(q.answerText || q.remarks) && (
-              <div className="px-5 pb-5 mt-auto">
-                <div className="pt-4 border-t border-slate-100">
-                  <button
-                    onClick={() => toggleAnswer(q.id)}
-                    className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 flex items-center justify-center gap-2 transition-all"
-                  >
-                    {visibleAnswers[q.id] ? (
-                      <><EyeOff className="w-4 h-4" /> Hide Solution</>
-                    ) : (
-                      <><Eye className="w-4 h-4" /> Reveal Solution & Remarks</>
-                    )}
-                  </button>
-
-                  {visibleAnswers[q.id] && (
-                    <div className="mt-3 space-y-3">
-                      {q.answerText && (
-                        <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium">
-                          <span className="font-extrabold block mb-2 text-emerald-800 text-xs uppercase tracking-wider">Answer</span>
-                          {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
-        ))}
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Sub-topic</label>
+            <div className="relative">
+              <select
+                value={selectedTopic}
+                onChange={(e) => setSelectedTopic(e.target.value)}
+                disabled={selectedSubjectKey === 'all'}
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none disabled:opacity-50 transition-all"
+              >
+                <option value="all">All Sub-topics</option>
+                {activeTopics.map((t, idx) => (
+                  <option key={idx} value={t}>{t}</option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Search Keywords</label>
+            <input
+              type="text"
+              placeholder="e.g. projectile, user..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-end">
+           <button
+             onClick={() => {
+               if (filteredQuestions.length > 0) {
+                 setFcIndex(0);
+                 setFcFlipped(false);
+                 setIsFlashcardMode(true);
+               }
+             }}
+             disabled={filteredQuestions.length === 0}
+             className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all"
+           >
+             <Zap className="w-4 h-4" />
+             <span className="md:hidden lg:inline">Flashcard Mode</span>
+           </button>
+        </div>
       </div>
+
+      {filteredQuestions.length === 0 ? (
+        <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-16 text-center shadow-sm">
+          <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+             <Users className="w-8 h-8 text-slate-300" />
+          </div>
+          <h3 className="font-extrabold text-slate-700 text-lg mb-2">No public questions match your filter</h3>
+          <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Try resetting your subject/sub-topic filters or clear your search term.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {filteredQuestions.map((q) => (
+            <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group/card">
+              
+              <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    {q.subject || 'HKDSE'}
+                  </span>
+                  <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                    {q.type === 'MC' ? 'MC' : 'LQ'}
+                  </span>
+                </div>
+                
+                {q.uploadedBy !== user?.uid ? (
+                  <button
+                    onClick={() => onSaveToLibrary(q)}
+                    className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <Download className="w-4 h-4" /> Save to My Library
+                  </button>
+                ) : (
+                  <span className="px-3 py-1.5 bg-indigo-50/50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-500 flex items-center gap-1.5 shadow-sm">
+                    <CheckCircle2 className="w-4 h-4" /> Shared by You
+                  </span>
+                )}
+              </div>
+
+              <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
+                  <span className="leading-tight">{q.topic || 'General'}</span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60">
+                  <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Difficulty:</span>
+                  <StarRating value={q.difficulty || 3} readonly size="sm" />
+                </div>
+              </div>
+
+              <div className="px-5 pt-2 flex justify-between items-center">
+                <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                  <Users className="w-3 h-3" /> Shared by: {q.uploadedBy === user?.uid ? 'You' : (q.authorName || 'Anonymous User')}
+                </div>
+                {q.createdAt && (
+                  <div className="text-[10px] font-bold text-slate-400">
+                    {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                  </div>
+                )}
+              </div>
+
+              {q.attachedImage && (
+                <div className="px-5 pt-4">
+                  <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex flex-col items-center justify-center p-2 group/img">
+                    <img 
+                      src={q.attachedImage} 
+                      alt="Diagram" 
+                      className="max-h-56 object-contain rounded-xl mix-blend-multiply transition-all" 
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="p-5 space-y-4 flex-1">
+                <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
+                  {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+                </div>
+
+                {q.type === 'MC' && q.options && typeof q.options === 'object' && (
+                  <div className="grid grid-cols-1 gap-2.5 pt-3">
+                    {['A', 'B', 'C', 'D'].map(letter => {
+                      const optVal = q.options[letter];
+                      if (!optVal) return null;
+                      return (
+                        <div key={letter} className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex items-start gap-3 shadow-sm">
+                          <span className="font-extrabold text-indigo-600 bg-indigo-50 w-6 h-6 rounded-md flex items-center justify-center shrink-0">{letter}</span>
+                          <span className="text-slate-700 font-medium pt-0.5">{String(optVal)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {(q.answerText || q.remarks) && (
+                <div className="px-5 pb-5 mt-auto">
+                  <div className="pt-4 border-t border-slate-100">
+                    <button
+                      onClick={() => toggleAnswer(q.id)}
+                      className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 flex items-center justify-center gap-2 transition-all"
+                    >
+                      {visibleAnswers[q.id] ? (
+                        <><EyeOff className="w-4 h-4" /> Hide Solution</>
+                      ) : (
+                        <><Eye className="w-4 h-4" /> Reveal Solution & Remarks</>
+                      )}
+                    </button>
+
+                    {visibleAnswers[q.id] && (
+                      <div className="mt-3 space-y-3">
+                        {q.answerText && (
+                          <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium">
+                            <span className="font-extrabold block mb-2 text-emerald-800 text-xs uppercase tracking-wider">Answer</span>
+                            {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -2012,7 +2274,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             if (parsedOpts) setOptions(parsedOpts);
           }
 
-          // Apply AI difficulty rating if AI Rating is selected
           if (rateSource === 'ai' && aiData.difficulty && Number.isInteger(aiData.difficulty)) {
             const clamped = Math.max(1, Math.min(5, aiData.difficulty));
             setDifficulty(clamped);
@@ -2464,7 +2725,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               </div>
             )}
 
-            {/* NEW: Community Share Toggle */}
+            {/* Community Share Toggle */}
             <div className="flex items-center gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
                <input
                  type="checkbox"
