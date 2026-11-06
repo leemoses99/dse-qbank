@@ -47,8 +47,12 @@ import {
   Image as ImageIcon,
   RotateCcw,
   RotateCw,
-  Crop
+  Crop,
+  ShieldCheck
 } from 'lucide-react';
+
+// --- DEFAULT PUBLIC API KEY ---
+const DEFAULT_PUBLIC_KEY = "AQ.Ab8RN6Jw0L8P19PHEk9LMqcZlRHPmL4U0UNaBVPbMbc6Jlz23g";
 
 // --- HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
@@ -227,8 +231,8 @@ const runLocalOCR = async (imageFile) => {
 };
 
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, apiKey, preExtractedText = '') => {
-  const effectiveKey = apiKey || '';
-  if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key in the setting input.');
+  const effectiveKey = apiKey || DEFAULT_PUBLIC_KEY;
+  if (!effectiveKey) throw new Error('API key is missing. Please enter your Gemini API key or choose the default key option.');
 
   const primaryEndpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${effectiveKey}`;
 
@@ -293,7 +297,7 @@ CRITICAL RULES:
 function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
   const [rotation, setRotation] = useState(0);
   const [rotatedCanvasSrc, setRotatedCanvasSrc] = useState(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 }); // percentages 0 to 100
+  const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
   
   const containerRef = useRef(null);
   const imgRef = useRef(null);
@@ -301,7 +305,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
   const dragHandleRef = useRef(null);
   const startPosRef = useRef({ mouseX: 0, mouseY: 0, crop: { ...crop } });
 
-  // Generate a rotated canvas image whenever the raw image or rotation angle changes
   useEffect(() => {
     if (!rawImageSrc) return;
     const img = new Image();
@@ -321,7 +324,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
       ctx.drawImage(img, -img.width / 2, -img.height / 2);
 
       setRotatedCanvasSrc(canvas.toDataURL('image/jpeg', 0.95));
-      // Reset crop box to 100% full bounds on photo
       setCrop({ x: 0, y: 0, width: 100, height: 100 });
     };
   }, [rawImageSrc, rotation]);
@@ -363,24 +365,23 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
       let newW = initial.width;
       let newH = initial.height;
 
-      const minSize = 5; // Minimum crop dimension percentage
+      const minSize = 5;
 
-      // Corner & Edge Calculations
-      if (handle.includes('l')) { // Left side
+      if (handle.includes('l')) {
         const maxDeltaX = initial.width - minSize;
         const clampedDeltaX = Math.min(deltaX, maxDeltaX);
         newX = Math.max(0, initial.x + clampedDeltaX);
         newW = initial.width - (newX - initial.x);
-      } else if (handle.includes('r')) { // Right side
+      } else if (handle.includes('r')) {
         newW = Math.min(100 - initial.x, Math.max(minSize, initial.width + deltaX));
       }
 
-      if (handle.includes('t')) { // Top side
+      if (handle.includes('t')) {
         const maxDeltaY = initial.height - minSize;
         const clampedDeltaY = Math.min(deltaY, maxDeltaY);
         newY = Math.max(0, initial.y + clampedDeltaY);
         newH = initial.height - (newY - initial.y);
-      } else if (handle.includes('b')) { // Bottom side
+      } else if (handle.includes('b')) {
         newH = Math.min(100 - initial.y, Math.max(minSize, initial.height + deltaY));
       }
 
@@ -438,7 +439,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-[#0c0c0e] flex flex-col font-sans select-none">
-      {/* Header Bar */}
       <div className="bg-[#18181b] border-b border-zinc-800 px-6 py-4 flex items-center justify-between z-20 shrink-0">
         <h2 className="text-base font-extrabold text-white tracking-wide">Crop and Resize</h2>
         <div className="flex items-center gap-3">
@@ -466,7 +466,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
         </div>
       </div>
 
-      {/* Main Grid Canvas with Fixed Image & Draggable 4-Corner Overlay */}
       <div className="flex-1 relative bg-[#09090b] bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] flex items-center justify-center p-6 overflow-hidden">
         {rotatedCanvasSrc && (
           <div 
@@ -474,7 +473,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
             className="relative inline-block max-w-full max-h-full shadow-2xl overflow-hidden"
             style={{ touchAction: 'none' }}
           >
-            {/* Stationary Image */}
             <img 
               ref={imgRef}
               src={rotatedCanvasSrc} 
@@ -482,7 +480,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
               className="max-h-[70vh] max-w-full object-contain block pointer-events-none"
             />
 
-            {/* Dark Mask Outside Crop Rectangle */}
             <div 
               className="absolute inset-0 bg-black/60 pointer-events-none"
               style={{
@@ -497,7 +494,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
               }}
             />
 
-            {/* Interactive Draggable Crop Rect */}
             <div
               className="absolute border border-white/40 shadow-sm cursor-move"
               style={{
@@ -509,7 +505,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
               onMouseDown={(e) => handleHandleStart('move', e)}
               onTouchStart={(e) => handleHandleStart('move', e)}
             >
-              {/* Rule of Thirds Grid Lines */}
               <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3">
                 <div className="border-r border-b border-white/20"></div>
                 <div className="border-r border-b border-white/20"></div>
@@ -522,8 +517,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
                 <div></div>
               </div>
 
-              {/* 4 CORNER DRAGGABLE HANDLES (White Brackets) */}
-              {/* Top-Left Corner */}
               <div
                 className="absolute -top-1.5 -left-1.5 w-6 h-6 cursor-nwse-resize z-30"
                 onMouseDown={(e) => handleHandleStart('tl', e)}
@@ -532,7 +525,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
                 <div className="w-full h-full border-t-4 border-l-4 border-white shadow-md"></div>
               </div>
 
-              {/* Top-Right Corner */}
               <div
                 className="absolute -top-1.5 -right-1.5 w-6 h-6 cursor-nesw-resize z-30"
                 onMouseDown={(e) => handleHandleStart('tr', e)}
@@ -541,7 +533,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
                 <div className="w-full h-full border-t-4 border-r-4 border-white shadow-md"></div>
               </div>
 
-              {/* Bottom-Left Corner */}
               <div
                 className="absolute -bottom-1.5 -left-1.5 w-6 h-6 cursor-nesw-resize z-30"
                 onMouseDown={(e) => handleHandleStart('bl', e)}
@@ -550,7 +541,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
                 <div className="w-full h-full border-b-4 border-l-4 border-white shadow-md"></div>
               </div>
 
-              {/* Bottom-Right Corner */}
               <div
                 className="absolute -bottom-1.5 -right-1.5 w-6 h-6 cursor-nwse-resize z-30"
                 onMouseDown={(e) => handleHandleStart('br', e)}
@@ -559,7 +549,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
                 <div className="w-full h-full border-b-4 border-r-4 border-white shadow-md"></div>
               </div>
 
-              {/* Edge Handles */}
               <div 
                 className="absolute top-0 left-6 right-6 h-2 cursor-ns-resize"
                 onMouseDown={(e) => handleHandleStart('t', e)}
@@ -585,7 +574,6 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
         )}
       </div>
 
-      {/* Footer Controls (Rotation & Straightening) */}
       <div className="bg-[#18181b] border-t border-zinc-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-20 shrink-0">
         <div className="flex items-center gap-2">
           <button
@@ -757,9 +745,15 @@ function AuthView({ onLoginSuccess }) {
              </div>
              <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
                <h4 className="font-bold text-white mb-3 flex items-center gap-2">
-                 <Key className="w-4 h-4 text-amber-400" /> 2. Gemini AI Key Setup
+                 <Key className="w-4 h-4 text-amber-400" /> 2. Gemini AI Key Options
                </h4>
-               <p className="text-xs text-slate-300">Get your key for free from Google AI Studio and enter it into app settings.</p>
+               <p className="text-xs text-slate-300 mb-3 leading-relaxed">
+                 You can choose between using the <strong>Built-in Public Key</strong> (ready to use immediately) or your <strong>Custom API Key</strong>:
+               </p>
+               <ul className="space-y-2 text-xs leading-relaxed pl-4 list-disc marker:text-amber-500/70">
+                 <li><strong>Built-in Public Key:</strong> Enabled by default for all users. No configuration needed.</li>
+                 <li><strong>Custom Key:</strong> Get your key free from <a href="https://aistudio.google.com/" target="_blank" rel="noreferrer" className="text-amber-400 hover:underline">Google AI Studio</a> and paste it in setting for dedicated quota.</li>
+               </ul>
              </div>
            </div>
         </div>
@@ -1275,6 +1269,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const fileInputRef = useRef(null);
 
   const [ocrEngine, setOcrEngine] = useState('ai');
+  const [keyOption, setKeyOption] = useState('default'); // 'default' | 'custom'
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [status, setStatus] = useState('idle');
@@ -1302,6 +1297,12 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       setTopic(HKDSE_SYLLABUS[newSubject].topics[0]);
     }
   };
+
+  useEffect(() => {
+    if (userApiKey) {
+      setKeyOption('custom');
+    }
+  }, [userApiKey]);
 
   useEffect(() => {
     if (editData) {
@@ -1403,6 +1404,14 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         if (parsedOpts) setOptions(parsedOpts);
         setStatus('idle');
       } else {
+        const effectiveKey = keyOption === 'default' ? DEFAULT_PUBLIC_KEY : userApiKey;
+        
+        if (keyOption === 'custom' && !userApiKey.trim()) {
+          setErrorText('Please enter your custom Gemini API key or switch to the Built-in Public Key.');
+          setStatus('idle');
+          return;
+        }
+
         const [localExtractedText, imagePayload] = await Promise.all([
           runLocalOCR(attachedImage),
           (async () => {
@@ -1411,7 +1420,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         ]);
 
         try {
-          const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, userApiKey, localExtractedText);
+          const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, effectiveKey, localExtractedText);
           
           if (aiData.subject) {
             const detectedSub = String(aiData.subject).toLowerCase();
@@ -1554,13 +1563,51 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
 
           {ocrEngine === 'ai' && (
             <div className="pt-2 space-y-3">
-              <input
-                type="password"
-                placeholder="Paste your Gemini API Key here..."
-                value={userApiKey}
-                onChange={(e) => setUserApiKey(e.target.value)}
-                className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
-              />
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Select Gemini Key Option</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setKeyOption('default')}
+                  className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all ${
+                    keyOption === 'default' 
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900 ring-2 ring-emerald-500/20' 
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600" /> Built-in Public Key
+                  </span>
+                  {keyOption === 'default' && <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setKeyOption('custom')}
+                  className={`p-3 rounded-xl text-xs font-bold flex items-center justify-between border transition-all ${
+                    keyOption === 'custom' 
+                      ? 'bg-indigo-50 border-indigo-300 text-indigo-900 ring-2 ring-indigo-500/20' 
+                      : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <Key className="w-4 h-4 text-indigo-600" /> Use My Own Key
+                  </span>
+                  {keyOption === 'custom' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
+                </button>
+              </div>
+
+              {keyOption === 'custom' && (
+                <div className="pt-1">
+                  <input
+                    type="password"
+                    placeholder="Paste your custom Gemini API Key..."
+                    value={userApiKey}
+                    onChange={(e) => setUserApiKey(e.target.value)}
+                    className="w-full text-sm font-medium bg-white border border-slate-300 rounded-xl p-3.5 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none shadow-sm transition-all"
+                  />
+                </div>
+              )}
+
               <div className="text-xs text-rose-800 bg-rose-50/80 p-3 rounded-xl border border-rose-200 flex items-start gap-2 shadow-sm">
                 <Globe2 className="w-4 h-4 shrink-0 mt-0.5 text-rose-500" />
                 <p className="leading-relaxed"><strong>VPN Required:</strong> Google Gemini AI is restricted in HK. Connect a VPN (outside HK) or the AI request will fail and fall back to local OCR.</p>
