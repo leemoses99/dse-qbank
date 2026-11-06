@@ -17,7 +17,12 @@ import {
   doc,
   setDoc,
   getDoc,
-  updateDoc
+  updateDoc,
+  collectionGroup,
+  query,
+  where,
+  getDocs,
+  limit
 } from 'firebase/firestore';
 import { 
   Camera, 
@@ -54,7 +59,10 @@ import {
   Zap,
   ArrowLeft,
   ArrowRight,
-  Quote
+  Quote,
+  Globe,
+  Download,
+  Users
 } from 'lucide-react';
 
 // --- DEFAULT PUBLIC API KEY ---
@@ -805,10 +813,9 @@ function AuthView({ onLoginSuccess }) {
                  <BookOpen className="w-4 h-4 text-emerald-400" /> 1. Features
                </h4>
                <ul className="space-y-2 pl-6 list-disc marker:text-slate-500">
-                 <li><strong>Paste Clipboard Images:</strong> Press <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Ctrl+V</code> or <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Cmd+V</code> anywhere on screen to paste images directly.</li>
-                 <li><strong>Question Difficulty:</strong> Rate question difficulty from 1 to 5 stars manually or let AI estimate it automatically.</li>
-                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic.</li>
+                 <li><strong>Community Library:</strong> Browse and save public questions shared by other students.</li>
                  <li><strong>Flashcard Mode:</strong> Turn your saved questions into a powerful, distraction-free study deck.</li>
+                 <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic.</li>
                </ul>
              </div>
              <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
@@ -831,14 +838,201 @@ function AuthView({ onLoginSuccess }) {
   );
 }
 
-// Main App
+// Community Library View Component
+function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
+  const [communityQuestions, setCommunityQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [visibleAnswers, setVisibleAnswers] = useState({});
+
+  useEffect(() => {
+    const fetchCommunity = async () => {
+      try {
+        setLoading(true);
+        // Using a standard query on collectionGroup
+        const q = query(
+          collectionGroup(db, 'questions'),
+          where('isSharedPublicly', '==', true),
+          limit(100)
+        );
+        const snap = await getDocs(q);
+        let data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Sort in memory to avoid Firebase Composite Index requirement for users
+        data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+        
+        // Filter out current user's own uploads
+        if (user) {
+          data = data.filter(q => q.uploadedBy !== user.uid);
+        }
+        
+        setCommunityQuestions(data);
+      } catch (err) {
+        console.error("Error fetching community questions:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCommunity();
+  }, [db, user]);
+
+  const toggleAnswer = (id) => {
+    setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center p-20 space-y-4">
+        <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+        <p className="text-sm text-slate-600 font-bold">Loading Community Questions...</p>
+      </div>
+    );
+  }
+
+  if (communityQuestions.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl border border-dashed border-slate-300 p-16 text-center shadow-sm">
+        <div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-100">
+           <Users className="w-8 h-8 text-slate-300" />
+        </div>
+        <h3 className="font-extrabold text-slate-700 text-lg mb-2">No public questions yet</h3>
+        <p className="text-sm font-medium text-slate-400 max-w-sm mx-auto">Be the first to share a question with the community!</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 text-blue-900 p-5 rounded-2xl shadow-sm flex items-center gap-4">
+        <div className="bg-blue-100 p-2.5 rounded-xl">
+          <Globe className="w-6 h-6 text-blue-500" />
+        </div>
+        <div>
+          <h2 className="font-extrabold text-base">Community Library</h2>
+          <p className="text-sm font-medium text-blue-700/80">Browse and save questions uploaded publicly by other students.</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        {communityQuestions.map((q) => (
+          <div key={q.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col relative group/card">
+            
+            <div className="bg-slate-50/80 px-5 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                  {q.subject || 'HKDSE'}
+                </span>
+                <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                  {q.type === 'MC' ? 'MC' : 'LQ'}
+                </span>
+              </div>
+              
+              <button
+                onClick={() => onSaveToLibrary(q)}
+                className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all shadow-sm"
+              >
+                <Download className="w-4 h-4" /> Save to My Library
+              </button>
+            </div>
+
+            <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
+                <span className="leading-tight">{q.topic || 'General'}</span>
+              </div>
+              <div className="flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60">
+                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Difficulty:</span>
+                <StarRating value={q.difficulty || 3} readonly size="sm" />
+              </div>
+            </div>
+
+            <div className="px-5 pt-2 flex justify-between items-center">
+              <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
+                <Users className="w-3 h-3" /> Shared by: {q.authorName || 'Anonymous User'}
+              </div>
+              {q.createdAt && (
+                <div className="text-[10px] font-bold text-slate-400">
+                  {new Date(q.createdAt).toLocaleString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                </div>
+              )}
+            </div>
+
+            {q.attachedImage && (
+              <div className="px-5 pt-4">
+                <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex flex-col items-center justify-center p-2 group/img">
+                  <img 
+                    src={q.attachedImage} 
+                    alt="Diagram" 
+                    className="max-h-56 object-contain rounded-xl mix-blend-multiply transition-all" 
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="p-5 space-y-4 flex-1">
+              <div className="text-sm font-medium text-slate-700 whitespace-pre-wrap leading-relaxed">
+                <span className="font-extrabold text-slate-900 block mb-2 text-xs uppercase tracking-wider">Question</span>
+                {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+              </div>
+
+              {q.type === 'MC' && q.options && typeof q.options === 'object' && (
+                <div className="grid grid-cols-1 gap-2.5 pt-3">
+                  {['A', 'B', 'C', 'D'].map(letter => {
+                    const optVal = q.options[letter];
+                    if (!optVal) return null;
+                    return (
+                      <div key={letter} className="bg-white p-3 rounded-xl border border-slate-200 text-sm flex items-start gap-3 shadow-sm">
+                        <span className="font-extrabold text-indigo-600 bg-indigo-50 w-6 h-6 rounded-md flex items-center justify-center shrink-0">{letter}</span>
+                        <span className="text-slate-700 font-medium pt-0.5">{String(optVal)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {(q.answerText || q.remarks) && (
+              <div className="px-5 pb-5 mt-auto">
+                <div className="pt-4 border-t border-slate-100">
+                  <button
+                    onClick={() => toggleAnswer(q.id)}
+                    className="w-full py-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 flex items-center justify-center gap-2 transition-all"
+                  >
+                    {visibleAnswers[q.id] ? (
+                      <><EyeOff className="w-4 h-4" /> Hide Solution</>
+                    ) : (
+                      <><Eye className="w-4 h-4" /> Reveal Solution & Remarks</>
+                    )}
+                  </button>
+
+                  {visibleAnswers[q.id] && (
+                    <div className="mt-3 space-y-3">
+                      {q.answerText && (
+                        <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium">
+                          <span className="font-extrabold block mb-2 text-emerald-800 text-xs uppercase tracking-wider">Answer</span>
+                          {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+// Main App Output UI
 export default function App() {
   const [user, setUser] = useState(null);
   const [localAccount, setLocalAccount] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(true);
   const [hasPassedAuthScreen, setHasPassedAuthScreen] = useState(false);
   
-  const [view, setView] = useState('library');
+  const [view, setView] = useState('library'); // library | review | mastered | add | community
   const [editingQuestion, setEditingQuestion] = useState(null);
   const [questions, setQuestions] = useState([]);
   const [userApiKey, setUserApiKey] = useState('');
@@ -906,6 +1100,27 @@ export default function App() {
     setHasPassedAuthScreen(false);
     setUserApiKey('');
     setQuestions([]);
+  };
+
+  const handleCloneCommunityQuestion = async (q) => {
+    if (!activeUser || !db) return;
+    try {
+      const qRef = collection(db, 'artifacts', appId, 'users', activeUser.uid, 'questions');
+      const cloneData = { ...q };
+      delete cloneData.id; 
+      
+      // Reset properties for personal library
+      cloneData.isSharedPublicly = false; 
+      cloneData.status = 'unmarked';
+      cloneData.createdAt = new Date().toISOString();
+      cloneData.clonedFrom = q.id;
+
+      await addDoc(qRef, cloneData);
+      alert("Question successfully cloned to your Library!");
+    } catch (err) {
+      console.error("Failed to clone:", err);
+      alert("Failed to clone question.");
+    }
   };
 
   if (loadingAuth) {
@@ -988,6 +1203,18 @@ export default function App() {
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">Add</span>
             </button>
+
+            <div className="w-px h-6 bg-slate-200 mx-1"></div>
+
+            <button
+              onClick={() => setView('community')}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                view === 'community' ? 'bg-blue-600 text-white shadow-md shadow-blue-200' : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+              }`}
+            >
+              <Globe className="w-4 h-4" />
+              <span className="hidden sm:inline">Community</span>
+            </button>
             
             <div className="w-px h-6 bg-slate-200 mx-1"></div>
             
@@ -1003,7 +1230,14 @@ export default function App() {
       </header>
 
       <main className="flex-1 max-w-5xl w-full mx-auto p-4 py-8">
-        {view === 'library' || view === 'review' || view === 'mastered' ? (
+        {view === 'community' ? (
+           <CommunityLibraryView 
+             db={db} 
+             appId={appId} 
+             user={activeUser} 
+             onSaveToLibrary={handleCloneCommunityQuestion}
+           />
+        ) : view === 'library' || view === 'review' || view === 'mastered' ? (
           <LibraryView 
             questions={view === 'review' ? questions.filter(q => q.status === 'review') : view === 'mastered' ? questions.filter(q => q.status === 'mastered') : questions} 
             user={activeUser} 
@@ -1557,6 +1791,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const [remarks, setRemarks] = useState('');
   const [attachedImage, setAttachedImage] = useState(null);
   const [includeImage, setIncludeImage] = useState(true);
+  const [isSharedPublicly, setIsSharedPublicly] = useState(false);
 
   const processImageFile = useCallback((file) => {
     if (!file || !file.type.startsWith('image/')) {
@@ -1620,6 +1855,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
       setOptions(editData.options || { A: '', B: '', C: '', D: '' });
       setRemarks(editData.remarks || '');
       setDifficulty(editData.difficulty || 3);
+      setIsSharedPublicly(editData.isSharedPublicly || false);
       if (editData.attachedImage) {
         setAttachedImage(editData.attachedImage);
         setImagePreview(editData.attachedImage);
@@ -1794,7 +2030,10 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
         remarks: remarks.trim(),
         difficulty: Number(difficulty) || 3,
         attachedImage: includeImage ? attachedImage : null,
-        status: editData ? editData.status || 'unmarked' : 'unmarked' 
+        status: editData ? editData.status || 'unmarked' : 'unmarked',
+        isSharedPublicly: isSharedPublicly,
+        uploadedBy: user.uid,
+        authorName: user.displayName || user.email?.split('@')[0] || 'Anonymous'
       };
 
       if (editData && editData.id) {
@@ -2195,10 +2434,25 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               </div>
             )}
 
+            {/* NEW: Community Share Toggle */}
+            <div className="flex items-center gap-3 bg-blue-50/50 p-4 rounded-xl border border-blue-100 mt-2">
+               <input
+                 type="checkbox"
+                 id="sharePubliclyCheck"
+                 checked={isSharedPublicly}
+                 onChange={(e) => setIsSharedPublicly(e.target.checked)}
+                 className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+               />
+               <label htmlFor="sharePubliclyCheck" className="text-sm font-bold text-blue-900 flex-1 cursor-pointer select-none">
+                 Share this question publicly to the Community Library
+               </label>
+               <Globe className="w-5 h-5 text-blue-400" />
+            </div>
+
             <button
               onClick={handleSaveQuestion}
               disabled={status === 'saving' || !questionText.trim()}
-              className="w-full py-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-[0.99]"
+              className="w-full py-4 mt-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white font-extrabold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-[0.99]"
             >
               {status === 'saving' ? (
                 <><Loader2 className="w-5 h-5 animate-spin" /> Saving Question...</>
