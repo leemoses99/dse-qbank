@@ -238,21 +238,49 @@ const rotateBase64Image = (base64, direction = 'cw') => {
 };
 
 // OCR Engines
+
 const runLocalOCR = async (imageFile) => {
-  if (!window.Tesseract) {
-    await new Promise((resolve, reject) => {
-      const script = document.createElement('script');
-      script.src = 'https://cdn.jsdelivr.net/npm/tesseract.min.js@5/dist/tesseract.min.js';
-      script.onload = resolve;
-      script.onerror = () => reject(new Error('Could not load browser OCR engine script.'));
-      document.head.appendChild(script);
-    });
+  if (window.Tesseract) {
+    try {
+      const worker = await window.Tesseract.createWorker('eng');
+      const result = await worker.recognize(imageFile);
+      await worker.terminate();
+      return result?.data?.text || '';
+    } catch (e) {
+      console.warn("Tesseract execution failed:", e);
+      return '';
+    }
   }
-  const worker = await window.Tesseract.createWorker('eng');
-  const result = await worker.recognize(imageFile);
-  await worker.terminate();
-  return result?.data?.text || '';
+
+  // Fallback CDNs in case jsDelivr is blocked by ad-blocker or CSP
+  const cdns = [
+    'https://cdn.jsdelivr.net/npm/tesseract.min.js@5/dist/tesseract.min.js',
+    'https://unpkg.com/tesseract.min.js@5/dist/tesseract.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js'
+  ];
+
+  for (const src of cdns) {
+    try {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+      if (window.Tesseract) {
+        const worker = await window.Tesseract.createWorker('eng');
+        const result = await worker.recognize(imageFile);
+        await worker.terminate();
+        return result?.data?.text || '';
+      }
+    } catch (err) {
+      console.warn(`Could not load OCR CDN from ${src}`);
+    }
+  }
+  return ''; // Return empty string gracefully if all CDNs fail
 };
+
 
 const runGeminiAIOCR = async (base64Image, mimeType, questionType, preExtractedText = '') => {
   const primaryEndpoint = `https://dse-qbank.vercel.app/api/gemini`;
@@ -2185,70 +2213,67 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
     try {
       if (ocrEngine === 'local') {
         const localExtractedText = await runLocalOCR(attachedImage);
+        if (!localExtractedText) {
+          setErrorText('Local browser OCR is blocked by your browser/network. Switch to Gemini 3.1 AI mode.');
+          setStatus('idle');
+          return;
+        }
         const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(localExtractedText);
         setQuestionText(cleanQuestion);
         if (parsedOpts) setOptions(parsedOpts);
         setStatus('idle');
       } else {
-        const [localExtractedText, imagePayload] = await Promise.all([
-          runLocalOCR(attachedImage),
-          (async () => {
-            return { base64Data: attachedImage.split(',')[1], mime: 'image/jpeg' };
-          })()
-        ]);
+        // AI Mode: Process image base64 directly
+        const base64Data = attachedImage.split(',')[1];
+        const mimeType = 'image/jpeg';
 
+        // Optional non-blocking pre-OCR check
+        let localExtractedText = '';
         try {
-          const aiData = await runGeminiAIOCR(imagePayload.base64Data, imagePayload.mime, questionType, localExtractedText);
-          
-          if (aiData.subject) {
-            const detectedSub = String(aiData.subject).toLowerCase();
-            const matchingKey = Object.keys(HKDSE_SYLLABUS).find(k => 
-              k.toLowerCase() === detectedSub || HKDSE_SYLLABUS[k].name.toLowerCase() === detectedSub
-            );
-            if (matchingKey) {
-              setSubjectKey(matchingKey);
-              const availableTopics = HKDSE_SYLLABUS[matchingKey].topics;
-              if (aiData.topic) {
-                const matchedTopic = availableTopics.find(t => 
-                  t.toLowerCase().includes(String(aiData.topic).toLowerCase()) ||
-                  String(aiData.topic).toLowerCase().includes(t.toLowerCase())
-                ) || aiData.topic;
-                setTopic(matchedTopic);
-              } else {
-                setTopic(availableTopics[0]);
-              }
-            }
-          } else if (aiData.topic) {
-            setTopic(String(aiData.topic));
-          }
-
-          if (aiData.question) setQuestionText(typeof aiData.question === 'object' ? JSON.stringify(aiData.question) : String(aiData.question));
-          if (aiData.answer) setAnswerText(typeof aiData.answer === 'object' ? JSON.stringify(aiData.answer) : String(aiData.answer));
-          if (aiData.options && typeof aiData.options === 'object') {
-            setOptions({
-              A: String(aiData.options.A || ''), B: String(aiData.options.B || ''),
-              C: String(aiData.options.C || ''), D: String(aiData.options.D || '')
-            });
-          } else {
-            const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(aiData.question || localExtractedText);
-            setQuestionText(cleanQuestion);
-            if (parsedOpts) setOptions(parsedOpts);
-          }
-
-          if (rateSource === 'ai' && aiData.difficulty && Number.isInteger(aiData.difficulty)) {
-            const clamped = Math.max(1, Math.min(5, aiData.difficulty));
-            setDifficulty(clamped);
-          }
-
-          setStatus('idle');
-        } catch (aiErr) {
-          console.warn("AI Structure Analysis failed, falling back to raw local text:", aiErr);
-          const { cleanQuestion, options: parsedOpts } = extractOptionsFromText(localExtractedText);
-          setQuestionText(cleanQuestion || (prev => (prev ? prev + '\n' : '') + (localExtractedText || '')));
-          if (parsedOpts) setOptions(parsedOpts);
-          setErrorText(`AI API Error: ${aiErr.message}. Used Free Local OCR text instead.`);
-          setStatus('idle');
+          localExtractedText = await runLocalOCR(attachedImage);
+        } catch (e) {
+          console.warn("Local OCR skipped for AI mode");
         }
+
+        const aiData = await runGeminiAIOCR(base64Data, mimeType, questionType, localExtractedText);
+        
+        if (aiData.subject) {
+          const detectedSub = String(aiData.subject).toLowerCase();
+          const matchingKey = Object.keys(HKDSE_SYLLABUS).find(k => 
+            k.toLowerCase() === detectedSub || HKDSE_SYLLABUS[k].name.toLowerCase() === detectedSub
+          );
+          if (matchingKey) {
+            setSubjectKey(matchingKey);
+            const availableTopics = HKDSE_SYLLABUS[matchingKey].topics;
+            if (aiData.topic) {
+              const matchedTopic = availableTopics.find(t => 
+                t.toLowerCase().includes(String(aiData.topic).toLowerCase()) ||
+                String(aiData.topic).toLowerCase().includes(t.toLowerCase())
+              ) || aiData.topic;
+              setTopic(matchedTopic);
+            } else {
+              setTopic(availableTopics[0]);
+            }
+          }
+        } else if (aiData.topic) {
+          setTopic(String(aiData.topic));
+        }
+
+        if (aiData.question) setQuestionText(typeof aiData.question === 'object' ? JSON.stringify(aiData.question) : String(aiData.question));
+        if (aiData.answer) setAnswerText(typeof aiData.answer === 'object' ? JSON.stringify(aiData.answer) : String(aiData.answer));
+        if (aiData.options && typeof aiData.options === 'object') {
+          setOptions({
+            A: String(aiData.options.A || ''), B: String(aiData.options.B || ''),
+            C: String(aiData.options.C || ''), D: String(aiData.options.D || '')
+          });
+        }
+
+        if (rateSource === 'ai' && aiData.difficulty && Number.isInteger(aiData.difficulty)) {
+          const clamped = Math.max(1, Math.min(5, aiData.difficulty));
+          setDifficulty(clamped);
+        }
+
+        setStatus('idle');
       }
     } catch (err) {
       console.error("Scanning Error:", err);
@@ -2257,6 +2282,7 @@ function AddQuestionView({ user, editData, onSaved, onCancel }) {
     }
   };
 
+  
   const handleSaveQuestion = async () => {
     if (!questionText.trim()) {
       setErrorText('Question Body cannot be empty.');
