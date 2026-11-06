@@ -1,10 +1,10 @@
 export default async function handler(req, res) {
-  // CORS Response Headers
+  // CORS Headers so your React app can make cross-origin requests
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
-  // Handle browser preflight checks
+  // Respond immediately to browser CORS preflight checks
   if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   const { key } = req.query;
   if (!key) {
-    return res.status(400).json({ error: "Gemini API key missing in request query." });
+    return res.status(400).json({ error: "Gemini API key is missing." });
   }
 
   const targetUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${key}`;
