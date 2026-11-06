@@ -234,7 +234,7 @@ const rotateBase64Image = (base64, direction = 'cw') => {
       }
       
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/jpeg', 0.85));
+      resolve(canvas.toDataURL('image/jpeg', 0.35));
     };
     img.onerror = reject;
     img.src = base64;
@@ -477,7 +477,7 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
     const cropPixelW = (crop.width / 100) * img.width;
     const cropPixelH = (crop.height / 100) * img.height;
 
-    const maxTargetWidth = 700;
+    const maxTargetWidth = 500;
     let scale = 1;
     if (cropPixelW > maxTargetWidth) scale = maxTargetWidth / cropPixelW;
 
@@ -491,7 +491,7 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
       0, 0, canvas.width, canvas.height
     );
 
-    const croppedBase64 = canvas.toDataURL('image/jpeg', 0.45);
+    const croppedBase64 = canvas.toDataURL('image/jpeg', 0.35);
     onDone(croppedBase64);
   };
 
