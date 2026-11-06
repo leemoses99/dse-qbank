@@ -50,11 +50,29 @@ import {
   Crop,
   ShieldCheck,
   Star,
-  Clipboard
+  Clipboard,
+  Zap,
+  ArrowLeft,
+  ArrowRight,
+  Quote
 } from 'lucide-react';
 
 // --- DEFAULT PUBLIC API KEY ---
 const DEFAULT_PUBLIC_KEY = "AQ.Ab8RN6Jw0L8P19PHEk9LMqcZlRHPmL4U0UNaBVPbMbc6Jlz23g";
+
+// --- MOTIVATIONAL QUOTES ---
+const MOTIVATIONAL_QUOTES = [
+  "Success is the sum of small efforts, repeated day in and day out.",
+  "The secret of getting ahead is getting started.",
+  "Don't stop until you're proud.",
+  "It always seems impossible until it's done.",
+  "Push yourself, because no one else is going to do it for you.",
+  "Hard work beats talent when talent doesn't work hard.",
+  "Your future is created by what you do today, not tomorrow.",
+  "Strive for progress, not perfection.",
+  "A little progress each day adds up to big results.",
+  "The only bad workout is the one that didn't happen. The only bad study session is the one you skipped."
+];
 
 // --- HKDSE SYLLABUS DATA STRUCTURE ---
 const HKDSE_SYLLABUS = {
@@ -648,6 +666,15 @@ function AuthView({ onLoginSuccess }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
+  const [quoteIdx, setQuoteIdx] = useState(0);
+
+  // Motivational Quote interval timer
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setQuoteIdx(prev => (prev + 1) % MOTIVATIONAL_QUOTES.length);
+    }, 120000); // 120,000 ms = 2 minutes
+    return () => clearInterval(interval);
+  }, []);
 
   const handleAuth = async (isLogin) => {
     if (!username.trim() || !password.trim()) {
@@ -699,7 +726,7 @@ function AuthView({ onLoginSuccess }) {
               <div className="bg-gradient-to-tr from-blue-600 to-indigo-500 p-4 rounded-2xl inline-block mb-5 shadow-lg shadow-blue-600/30">
                  <BookOpen className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-black text-slate-900 tracking-tight">HKDSE Hub</h2>
+              <h2 className="text-2xl font-black text-slate-900 tracking-tight">My HKDSE Question Bank</h2>
               <p className="text-sm text-slate-500 mt-2 font-medium">Your intelligent exam revision bank.</p>
            </div>
            
@@ -761,6 +788,14 @@ function AuthView({ onLoginSuccess }) {
         </div>
 
         <div className={`w-full md:w-[480px] bg-slate-800/60 backdrop-blur-md rounded-3xl p-8 border border-white/10 text-white shadow-2xl transition-all duration-300 ${showGuide ? 'block' : 'hidden md:block'}`}>
+           
+           <div className="bg-indigo-900/40 p-6 rounded-2xl border border-indigo-500/30 mb-6 relative overflow-hidden shadow-inner">
+             <Quote className="w-20 h-20 text-indigo-500/10 absolute -top-4 -left-4 rotate-180" />
+             <p className="text-[15px] text-indigo-50 italic relative z-10 font-medium leading-relaxed min-h-[48px] flex items-center">
+               "{MOTIVATIONAL_QUOTES[quoteIdx]}"
+             </p>
+           </div>
+
            <h3 className="text-xl font-bold mb-6 flex items-center gap-2 text-indigo-300">
              <Sparkles className="w-6 h-6" /> Welcome to the Hub
            </h3>
@@ -773,7 +808,7 @@ function AuthView({ onLoginSuccess }) {
                  <li><strong>Paste Clipboard Images:</strong> Press <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Ctrl+V</code> or <code className="bg-slate-900 px-1.5 py-0.5 rounded text-amber-300">Cmd+V</code> anywhere on screen to paste images directly.</li>
                  <li><strong>Question Difficulty:</strong> Rate question difficulty from 1 to 5 stars manually or let AI estimate it automatically.</li>
                  <li><strong>AI OCR Extraction:</strong> Auto-detects questions, MC options, subject, and sub-topic.</li>
-                 <li><strong>Progress Tracking:</strong> Tag questions with Tick or Cross for revision.</li>
+                 <li><strong>Flashcard Mode:</strong> Turn your saved questions into a powerful, distraction-free study deck.</li>
                </ul>
              </div>
              <div className="bg-slate-900/50 p-5 rounded-2xl border border-slate-700">
@@ -908,7 +943,7 @@ export default function App() {
               <BookOpen className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="font-bold text-[15px] leading-tight text-slate-900">HKDSE Revision Hub</h1>
+              <h1 className="font-bold text-[15px] leading-tight text-slate-900">My HKDSE Question Bank</h1>
               <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full inline-block animate-pulse bg-emerald-500"></span>
                 {displayUsername}
@@ -1001,6 +1036,17 @@ function LibraryView({ questions, user, currentView, onEdit }) {
   const [visibleAnswers, setVisibleAnswers] = useState({});
   const [localImages, setLocalImages] = useState({});
 
+  // Flashcard States
+  const [isFlashcardMode, setIsFlashcardMode] = useState(false);
+  const [fcIndex, setFcIndex] = useState(0);
+  const [fcFlipped, setFcFlipped] = useState(false);
+
+  // Reset Flashcard session if filters change
+  useEffect(() => {
+    setFcIndex(0);
+    setFcFlipped(false);
+  }, [selectedSubjectKey, selectedTopic, searchQuery, currentView]);
+
   const toggleAnswer = (id) => {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
   };
@@ -1054,6 +1100,166 @@ function LibraryView({ questions, user, currentView, onEdit }) {
     return true;
   });
 
+  // Render Flashcard View Interface
+  if (isFlashcardMode && filteredQuestions.length > 0) {
+    const validFcIndex = Math.min(fcIndex, filteredQuestions.length - 1);
+    const q = filteredQuestions[validFcIndex];
+
+    const nextCard = () => {
+      if (validFcIndex < filteredQuestions.length - 1) {
+        setFcIndex(validFcIndex + 1);
+        setFcFlipped(false);
+      }
+    };
+    
+    const prevCard = () => {
+      if (validFcIndex > 0) {
+        setFcIndex(validFcIndex - 1);
+        setFcFlipped(false);
+      }
+    };
+
+    return (
+      <div className="max-w-2xl mx-auto space-y-6">
+        
+        <div className="flex items-center justify-between bg-white px-5 py-4 rounded-2xl border border-slate-200 shadow-sm">
+          <button 
+            onClick={() => setIsFlashcardMode(false)}
+            className="text-slate-500 hover:text-indigo-600 font-bold text-sm flex items-center gap-2 transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" /> Exit Flashcards
+          </button>
+          <div className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-xs font-bold border border-slate-200">
+            Card {validFcIndex + 1} of {filteredQuestions.length}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden flex flex-col relative min-h-[500px]">
+          
+          <div className="bg-slate-50/80 px-6 py-4 border-b border-slate-100 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-indigo-100 text-indigo-800 border border-indigo-200">
+                {q.subject || 'HKDSE'}
+              </span>
+              <span className="px-3 py-1 rounded-lg text-xs font-extrabold bg-purple-100 text-purple-800 border border-purple-200">
+                {q.type === 'MC' ? 'MC' : 'LQ'}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-1 bg-white rounded-xl border border-slate-200 shadow-sm p-1">
+              <button
+                onClick={() => toggleStatus(q.id, q.status === 'mastered' ? 'unmarked' : 'mastered')}
+                className={`p-1.5 rounded-lg transition-colors ${q.status === 'mastered' ? 'text-emerald-600 bg-emerald-100' : 'text-slate-300 hover:text-emerald-500 hover:bg-slate-50'}`}
+                title="Mark as Mastered (Tick)"
+              >
+                <CheckCircle className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => toggleStatus(q.id, q.status === 'review' ? 'unmarked' : 'review')}
+                className={`p-1.5 rounded-lg transition-colors ${q.status === 'review' ? 'text-rose-600 bg-rose-100' : 'text-slate-300 hover:text-rose-500 hover:bg-slate-50'}`}
+                title="Needs Review (Cross)"
+              >
+                <XCircle className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="px-6 pt-5 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-100 px-2 py-0.5 rounded text-[10px] uppercase tracking-wider font-bold text-slate-400">Topic</span>
+              <span className="leading-tight">{q.topic || 'General'}</span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-amber-50/80 px-2.5 py-1 rounded-lg border border-amber-200/60">
+              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider">Difficulty:</span>
+              <StarRating value={q.difficulty || 3} readonly size="sm" />
+            </div>
+          </div>
+
+          {q.attachedImage && (
+            <div className="px-6 pt-5">
+              <div className="relative rounded-2xl border border-slate-200 overflow-hidden bg-slate-50/50 flex flex-col items-center justify-center p-2 group/img">
+                <img 
+                  src={localImages[q.id] || q.attachedImage} 
+                  alt="Diagram" 
+                  className="max-h-64 object-contain rounded-xl mix-blend-multiply transition-all" 
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="p-6 space-y-4 flex-1">
+            <div className="text-base font-medium text-slate-800 whitespace-pre-wrap leading-relaxed">
+              {typeof q.questionText === 'object' ? JSON.stringify(q.questionText) : String(q.questionText || '')}
+            </div>
+            {q.type === 'MC' && q.options && typeof q.options === 'object' && (
+              <div className="grid grid-cols-1 gap-3 pt-4">
+                {['A', 'B', 'C', 'D'].map(letter => {
+                  const optVal = q.options[letter];
+                  if (!optVal) return null;
+                  return (
+                    <div key={letter} className="bg-slate-50 p-3 rounded-xl border border-slate-200 text-sm flex items-start gap-3">
+                      <span className="font-extrabold text-indigo-600 bg-white w-6 h-6 rounded-md border border-indigo-100 flex items-center justify-center shrink-0 shadow-sm">{letter}</span>
+                      <span className="text-slate-700 font-medium pt-0.5">{String(optVal)}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="px-6 pb-6 mt-auto">
+             {!fcFlipped ? (
+                <button
+                  onClick={() => setFcFlipped(true)}
+                  className="w-full py-4 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-extrabold rounded-2xl border border-indigo-200 transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Eye className="w-5 h-5" /> Reveal Answer
+                </button>
+             ) : (
+                <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-100 pt-4">
+                  {q.answerText && (
+                    <div className="p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium shadow-sm">
+                      <span className="font-extrabold font-sans block mb-2 text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                         <CheckCircle2 className="w-4 h-4" /> Marking Scheme / Answer
+                      </span>
+                      {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                    </div>
+                  )}
+                  {q.remarks && (
+                    <div className="p-5 bg-amber-50/80 border border-amber-200 rounded-2xl text-sm text-amber-900 whitespace-pre-wrap font-medium shadow-sm">
+                      <span className="font-extrabold font-sans block mb-2 text-amber-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                         <Info className="w-4 h-4" /> Remarks / Notes
+                      </span>
+                      {q.remarks}
+                    </div>
+                  )}
+                </div>
+             )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <button 
+            onClick={prevCard} 
+            disabled={validFcIndex === 0}
+            className="flex-1 py-4 bg-white hover:bg-slate-50 disabled:opacity-50 disabled:hover:bg-white text-slate-700 font-bold rounded-2xl border border-slate-200 flex items-center justify-center gap-2 shadow-sm transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" /> Previous
+          </button>
+          <button 
+            onClick={nextCard} 
+            disabled={validFcIndex === filteredQuestions.length - 1}
+            className="flex-1 py-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600 text-white font-bold rounded-2xl flex items-center justify-center gap-2 shadow-md shadow-indigo-200 transition-all active:scale-[0.98]"
+          >
+            Next <ArrowRight className="w-5 h-5" />
+          </button>
+        </div>
+
+      </div>
+    );
+  }
+
+  // Regular Grid Render...
   return (
     <div className="space-y-6">
       {currentView === 'review' && (
@@ -1080,55 +1286,75 @@ function LibraryView({ questions, user, currentView, onEdit }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-        <div>
-          <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Subject</label>
-            <div className="relative">
-              <select
-                value={selectedSubjectKey}
-                onChange={(e) => {
-                  setSelectedSubjectKey(e.target.value);
-                  setSelectedTopic('all');
-                }}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
-              >
-                <option value="all">All Subjects</option>
-                {subjectKeys.map(k => (
-                  <option key={k} value={k}>{HKDSE_SYLLABUS[k].name}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
-            </div>
-          </div>
-
+      <div className="flex flex-col md:flex-row gap-4 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+        <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Sub-topic</label>
-            <div className="relative">
-              <select
-                value={selectedTopic}
-                onChange={(e) => setSelectedTopic(e.target.value)}
-                disabled={selectedSubjectKey === 'all'}
-                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none disabled:opacity-50 transition-all"
-              >
-                <option value="all">All Sub-topics</option>
-                {activeTopics.map((t, idx) => (
-                  <option key={idx} value={t}>{t}</option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Subject</label>
+              <div className="relative">
+                <select
+                  value={selectedSubjectKey}
+                  onChange={(e) => {
+                    setSelectedSubjectKey(e.target.value);
+                    setSelectedTopic('all');
+                  }}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+                >
+                  <option value="all">All Subjects</option>
+                  {subjectKeys.map(k => (
+                    <option key={k} value={k}>{HKDSE_SYLLABUS[k].name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Search Keywords</label>
-            <input
-              type="text"
-              placeholder="e.g. projectile, 2023..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
-            />
-          </div>
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Sub-topic</label>
+              <div className="relative">
+                <select
+                  value={selectedTopic}
+                  onChange={(e) => setSelectedTopic(e.target.value)}
+                  disabled={selectedSubjectKey === 'all'}
+                  className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 pl-3 pr-8 appearance-none focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none disabled:opacity-50 transition-all"
+                >
+                  <option value="all">All Sub-topics</option>
+                  {activeTopics.map((t, idx) => (
+                    <option key={idx} value={t}>{t}</option>
+                  ))}
+                </select>
+                <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3 top-3 pointer-events-none" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Search Keywords</label>
+              <input
+                type="text"
+                placeholder="e.g. projectile, 2023..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm font-medium rounded-xl py-2.5 px-3 focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none transition-all"
+              />
+            </div>
+        </div>
+
+        {/* Flashcard Launch Button */}
+        <div className="flex items-end">
+           <button
+             onClick={() => {
+               if (filteredQuestions.length > 0) {
+                 setFcIndex(0);
+                 setFcFlipped(false);
+                 setIsFlashcardMode(true);
+               }
+             }}
+             disabled={filteredQuestions.length === 0}
+             className="w-full md:w-auto px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 shadow-sm transition-all"
+           >
+             <Zap className="w-4 h-4" />
+             <span className="md:hidden lg:inline">Flashcard Mode</span>
+           </button>
+        </div>
       </div>
 
       {filteredQuestions.length === 0 ? (
@@ -1977,7 +2203,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
               {status === 'saving' ? (
                 <><Loader2 className="w-5 h-5 animate-spin" /> Saving Question...</>
               ) : (
-                <><CheckCircle2 className="w-5 h-5" /> Save to Revision Hub</>
+                <><CheckCircle2 className="w-5 h-5" /> Save to Question Bank</>
               )}
             </button>
           </div>
