@@ -860,10 +860,8 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
         // Sort in memory to avoid Firebase Composite Index requirement for users
         data.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
         
-        // Filter out current user's own uploads
-        if (user) {
-          data = data.filter(q => q.uploadedBy !== user.uid);
-        }
+        // FIX: Removed the filter that hid your own uploads from the feed
+        // so you can verify your shared questions are appearing in the community.
         
         setCommunityQuestions(data);
       } catch (err) {
@@ -926,12 +924,19 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
                 </span>
               </div>
               
-              <button
-                onClick={() => onSaveToLibrary(q)}
-                className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all shadow-sm"
-              >
-                <Download className="w-4 h-4" /> Save to My Library
-              </button>
+              {/* FIX: Disable download button for the user's own uploads */}
+              {q.uploadedBy !== user?.uid ? (
+                <button
+                  onClick={() => onSaveToLibrary(q)}
+                  className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 rounded-lg text-xs font-bold text-slate-600 flex items-center gap-1.5 transition-all shadow-sm"
+                >
+                  <Download className="w-4 h-4" /> Save to My Library
+                </button>
+              ) : (
+                <span className="px-3 py-1.5 bg-indigo-50/50 border border-indigo-100 rounded-lg text-xs font-bold text-indigo-500 flex items-center gap-1.5 shadow-sm">
+                  <CheckCircle2 className="w-4 h-4" /> Shared by You
+                </span>
+              )}
             </div>
 
             <div className="px-5 pt-4 text-xs font-semibold text-slate-500 flex items-center justify-between gap-2">
@@ -947,7 +952,7 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
 
             <div className="px-5 pt-2 flex justify-between items-center">
               <div className="text-[10px] font-bold text-slate-400 flex items-center gap-1">
-                <Users className="w-3 h-3" /> Shared by: {q.authorName || 'Anonymous User'}
+                <Users className="w-3 h-3" /> Shared by: {q.uploadedBy === user?.uid ? 'You' : (q.authorName || 'Anonymous User')}
               </div>
               {q.createdAt && (
                 <div className="text-[10px] font-bold text-slate-400">
