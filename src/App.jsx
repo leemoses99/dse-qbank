@@ -1103,6 +1103,12 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   };
 
+  const handleResetCrop = () => {
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setRotation(0);
+  };
+
   const handleRotatePreview = async (direction) => {
     if (!imagePreview) return;
     try {
@@ -1225,35 +1231,57 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   };
 
-  // Modern Cropper Modal with 4 Corner Draggable Handles & Continuous Free Rotation Slider
+  // Full-featured Cropper UI matching screenshot (4 corner handles + top bar + grid dark canvas)
   if (isCropping) {
     return (
-      <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col">
+      <div className="fixed inset-0 z-50 bg-[#121214] flex flex-col font-sans select-none">
         <style>{`
-          .reactCropperArea {
-            border: 2px solid #6366f1 !important;
+          .customCropperArea {
             box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.65) !important;
-          }
-          .reactCropperArea::before, .reactCropperArea::after {
-            content: '';
-            position: absolute;
-            box-sizing: border-box;
-          }
-          .reactCropperArea::before {
-            top: -6px; bottom: -6px; left: -6px; right: -6px;
-            border-top: 6px solid #818cf8;
-            border-bottom: 6px solid #818cf8;
-            pointer-events: none;
-          }
-          .reactCropperArea::after {
-            top: -6px; bottom: -6px; left: -6px; right: -6px;
-            border-left: 6px solid #818cf8;
-            border-right: 6px solid #818cf8;
-            pointer-events: none;
+            border: 1px solid rgba(255, 255, 255, 0.3) !important;
+            position: relative;
+            background: 
+              linear-gradient(to right, #ffffff 22px, transparent 22px) top left / 100% 5px no-repeat,
+              linear-gradient(to bottom, #ffffff 22px, transparent 22px) top left / 5px 100% no-repeat,
+              linear-gradient(to left, #ffffff 22px, transparent 22px) top right / 100% 5px no-repeat,
+              linear-gradient(to bottom, #ffffff 22px, transparent 22px) top right / 5px 100% no-repeat,
+              linear-gradient(to right, #ffffff 22px, transparent 22px) bottom left / 100% 5px no-repeat,
+              linear-gradient(to top, #ffffff 22px, transparent 22px) bottom left / 5px 100% no-repeat,
+              linear-gradient(to left, #ffffff 22px, transparent 22px) bottom right / 100% 5px no-repeat,
+              linear-gradient(to top, #ffffff 22px, transparent 22px) bottom right / 5px 100% no-repeat !important;
           }
         `}</style>
 
-        <div className="flex-1 relative">
+        {/* Top Header Bar */}
+        <div className="bg-[#18181b] border-b border-zinc-800 px-6 py-4 flex items-center justify-between z-20 shrink-0">
+          <h2 className="text-base font-extrabold text-white tracking-wide">Crop and Resize</h2>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCancelCrop}
+              className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleResetCrop}
+              className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={saveCrop}
+              className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-lg transition-all shadow-md active:scale-95"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+
+        {/* Dark Canvas with Background Grid */}
+        <div className="flex-1 relative bg-[#09090b] bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
           <Cropper
             image={rawImageSrc}
             crop={crop}
@@ -1261,8 +1289,7 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
             rotation={rotation}
             aspect={undefined}
             showGrid={true}
-            cropSize={undefined}
-            classes={{ cropAreaClassName: 'reactCropperArea' }}
+            classes={{ cropAreaClassName: 'customCropperArea' }}
             onCropChange={setCrop}
             onRotationChange={setRotation}
             onCropComplete={handleCropComplete}
@@ -1270,59 +1297,36 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
           />
         </div>
 
-        <div className="bg-slate-900 p-5 border-t border-slate-800 flex flex-col gap-4 text-white shrink-0">
-          <div className="flex flex-col sm:flex-row items-center gap-4 bg-slate-800/80 p-3 rounded-2xl border border-slate-700">
-            <div className="flex items-center gap-2 shrink-0">
-              <button 
-                type="button" 
-                onClick={() => setRotation(r => (r - 90 + 360) % 360)} 
-                className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 text-xs font-bold flex items-center gap-1 transition-colors"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> -90°
-              </button>
-              <button 
-                type="button" 
-                onClick={() => setRotation(r => (r + 90) % 360)} 
-                className="p-2 bg-slate-700 rounded-lg hover:bg-slate-600 text-xs font-bold flex items-center gap-1 transition-colors"
-              >
-                <RotateCw className="w-3.5 h-3.5" /> +90°
-              </button>
-            </div>
-
-            <div className="flex-1 flex items-center gap-3 w-full">
-              <span className="text-xs font-bold text-slate-400 shrink-0">Free Rotation:</span>
-              <input 
-                type="range" 
-                min={0} 
-                max={360} 
-                value={rotation} 
-                onChange={(e) => setRotation(Number(e.target.value))}
-                className="w-full accent-indigo-500 h-1.5 bg-slate-600 rounded-lg cursor-pointer"
-              />
-              <span className="text-xs font-mono font-bold text-indigo-400 shrink-0 w-10 text-right">{Math.round(rotation)}°</span>
-            </div>
+        {/* Rotation & Angle Slider Controls */}
+        <div className="bg-[#18181b] border-t border-zinc-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-20 shrink-0">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRotation(r => (r - 90 + 360) % 360)}
+              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+            >
+              <RotateCcw className="w-3.5 h-3.5" /> -90°
+            </button>
+            <button
+              type="button"
+              onClick={() => setRotation(r => (r + 90) % 360)}
+              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+            >
+              <RotateCw className="w-3.5 h-3.5" /> +90°
+            </button>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-xs text-slate-400 hidden sm:inline font-medium">
-              Drag corners/edges to crop. Use slider above to straighten image.
-            </span>
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
-              <button 
-                type="button" 
-                onClick={handleCancelCrop} 
-                className="px-5 py-2.5 bg-slate-800 text-rose-400 rounded-xl font-bold hover:bg-slate-700 transition-colors text-xs w-full sm:w-auto"
-              >
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                onClick={saveCrop} 
-                className="px-6 py-2.5 bg-emerald-600 rounded-xl font-bold hover:bg-emerald-700 transition-colors text-xs flex items-center justify-center gap-2 shadow-lg shadow-emerald-900/50 w-full sm:w-auto"
-              >
-                <CheckCircle className="w-4 h-4" /> Apply Crop & Rotation
-              </button>
-            </div>
+          <div className="flex-1 flex items-center gap-3 w-full sm:max-w-md">
+            <span className="text-xs font-semibold text-zinc-400 shrink-0">Angle:</span>
+            <input
+              type="range"
+              min={0}
+              max={360}
+              value={rotation}
+              onChange={(e) => setRotation(Number(e.target.value))}
+              className="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer"
+            />
+            <span className="text-xs font-mono font-extrabold text-amber-400 shrink-0 w-10 text-right">{Math.round(rotation)}°</span>
           </div>
         </div>
       </div>
