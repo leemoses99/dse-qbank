@@ -346,7 +346,6 @@ CRITICAL RULES:
   } catch (err) {
     throw new Error("Failed to parse AI output into structured format.");
   }
-};
 
 // --- STAR RATING COMPONENT ---
 function StarRating({ value = 3, onChange, readonly = false, size = "md" }) {
