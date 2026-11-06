@@ -44,7 +44,8 @@ import {
   Globe2,
   Sparkles,
   Clock,
-  Image as ImageIcon
+  Image as ImageIcon,
+  RotateCw
 } from 'lucide-react';
 
 // --- HKDSE SYLLABUS DATA STRUCTURE (Alphabetical Order) ---
@@ -193,6 +194,29 @@ const compressImage = (file) => {
       };
     };
     reader.onerror = error => reject(error);
+  });
+};
+
+// Image Rotation (90 Degrees Clockwise)
+const rotateImageBase64 = (base64data) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.src = base64data;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      // Swap width and height for 90-degree rotation
+      canvas.width = img.height;
+      canvas.height = img.width;
+      const ctx = canvas.getContext('2d');
+      
+      // Move to center, rotate, draw, move back
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate((90 * Math.PI) / 180);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+      
+      resolve(canvas.toDataURL('image/jpeg', 0.8));
+    };
+    img.onerror = reject;
   });
 };
 
@@ -1008,6 +1032,21 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   };
 
+  const handleRotateImage = async () => {
+    if (!attachedImage) return;
+    try {
+      setStatus('scanning');
+      const rotatedBase64 = await rotateImageBase64(attachedImage);
+      setAttachedImage(rotatedBase64);
+      setImagePreview(rotatedBase64);
+      setStatus('idle');
+    } catch (err) {
+      console.error("Failed to rotate image:", err);
+      setErrorText("Failed to rotate image.");
+      setStatus('idle');
+    }
+  };
+
   const handleRunOCR = async () => {
     if (!attachedImage && !imageFile) {
       setErrorText('Please attach an image first.');
@@ -1231,17 +1270,30 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
           ) : (
             <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-64 border border-slate-200 shadow-inner group">
               <img src={imagePreview} alt="Target" className="w-full h-full object-contain" />
-              <button
-                onClick={() => {
-                  setImageFile(null);
-                  setImagePreview(null);
-                  setAttachedImage(null);
-                  setIncludeImage(true);
-                }}
-                className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+              
+              <div className="absolute top-3 right-3 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleRotateImage}
+                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-indigo-500 transition-colors shadow-sm"
+                  title="Rotate 90°"
+                >
+                  <RotateCw className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageFile(null);
+                    setImagePreview(null);
+                    setAttachedImage(null);
+                    setIncludeImage(true);
+                  }}
+                  className="bg-black/60 backdrop-blur-sm text-white p-2 rounded-full hover:bg-rose-600 transition-colors shadow-sm"
+                  title="Remove Image"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
           
