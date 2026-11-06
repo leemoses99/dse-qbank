@@ -348,29 +348,30 @@ CRITICAL RULES:
 
 // --- MATH SYMBOL TOOLBAR COMPONENT ---
 function MathSymbolToolbar({ onInsert }) {
+  // Uses LaTeX syntax to create structured math inputs (brackets act as fillable boxes)
   const symbols = [
-    { label: 'x²', value: '²' },
-    { label: 'x³', value: '³' },
-    { label: 'xⁿ', value: '^' },
-    { label: 'a/b', value: '/' },
-    { label: 'log', value: 'log' },
-    { label: 'logₐ', value: 'log_a()' },
-    { label: 'π', value: 'π' },
+    { label: 'x²', value: '^{2}' },
+    { label: 'x³', value: '^{3}' },
+    { label: 'xⁿ', value: '^{ }' },
+    { label: 'a/b', value: '\\frac{ }{ }' },
+    { label: 'log', value: '\\log( )' },
+    { label: 'logₐ', value: '\\log_{ }( )' },
+    { label: 'π', value: '\\pi ' },
     { label: 'e', value: 'e' },
     { label: '>', value: '>' },
     { label: '<', value: '<' },
-    { label: '≥', value: '≥' },
-    { label: '≤', value: '≤' },
-    { label: 'Σ', value: 'Σ' },
-    { label: '√', value: '√' },
-    { label: 'ⁿ√', value: 'ⁿ√' },
-    { label: '°', value: '°' },
-    { label: '∫', value: '∫' },
-    { label: '∫ₐᵇ', value: '∫_a^b' },
-    { label: '∞', value: '∞' },
-    { label: 'θ', value: 'θ' },
-    { label: '±', value: '±' },
-    { label: 'Δ', value: 'Δ' }
+    { label: '≥', value: '\\geq ' },
+    { label: '≤', value: '\\leq ' },
+    { label: 'Σ', value: '\\sum_{ }^{ } ' },
+    { label: '√', value: '\\sqrt{ }' },
+    { label: 'ⁿ√', value: '\\sqrt[ ]{ }' },
+    { label: '°', value: '^\\circ ' },
+    { label: '∫', value: '\\int ' },
+    { label: '∫ₐᵇ', value: '\\int_{ }^{ } ' },
+    { label: '∞', value: '\\infty ' },
+    { label: 'θ', value: '\\theta ' },
+    { label: '±', value: '\\pm ' },
+    { label: 'Δ', value: '\\Delta ' }
   ];
 
   return (
