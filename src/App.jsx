@@ -349,23 +349,28 @@ CRITICAL RULES:
 // --- MATH SYMBOL TOOLBAR COMPONENT ---
 function MathSymbolToolbar({ onInsert }) {
   const symbols = [
-    { label: '×10ⁿ', value: '×10^' },
+    { label: 'x²', value: '²' },
+    { label: 'x³', value: '³' },
     { label: 'xⁿ', value: '^' },
-    { label: 'xₙ', value: '_' },
+    { label: 'a/b', value: '/' },
+    { label: 'log', value: 'log' },
+    { label: 'logₐ', value: 'log_a()' },
     { label: 'π', value: 'π' },
-    { label: 'θ', value: 'θ' },
-    { label: '√', value: '√' },
-    { label: '±', value: '±' },
-    { label: '≤', value: '≤' },
+    { label: 'e', value: 'e' },
+    { label: '>', value: '>' },
+    { label: '<', value: '<' },
     { label: '≥', value: '≥' },
+    { label: '≤', value: '≤' },
+    { label: 'Σ', value: 'Σ' },
+    { label: '√', value: '√' },
+    { label: 'ⁿ√', value: 'ⁿ√' },
     { label: '°', value: '°' },
-    { label: '×', value: '×' },
-    { label: '÷', value: '÷' },
-    { label: 'Δ', value: 'Δ' },
-    { label: 'α', value: 'α' },
-    { label: 'β', value: 'β' },
-    { label: 'Ω', value: 'Ω' },
-    { label: '∫', value: '∫' }
+    { label: '∫', value: '∫' },
+    { label: '∫ₐᵇ', value: '∫_a^b' },
+    { label: '∞', value: '∞' },
+    { label: 'θ', value: 'θ' },
+    { label: '±', value: '±' },
+    { label: 'Δ', value: 'Δ' }
   ];
 
   return (
@@ -377,6 +382,7 @@ function MathSymbolToolbar({ onInsert }) {
           type="button"
           onClick={() => onInsert(s.value)}
           className="px-2 py-1 text-xs font-mono font-bold bg-white text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 border border-slate-200 rounded-lg shadow-sm transition-all active:scale-95"
+          title={`Insert ${s.label}`}
         >
           {s.label}
         </button>
