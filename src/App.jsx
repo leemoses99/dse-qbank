@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Cropper from 'react-easy-crop';
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
@@ -176,7 +175,7 @@ const extractOptionsFromText = (rawText) => {
   return { cleanQuestion: text, options: null };
 };
 
-// Image Utilities
+// Simple Image Loader Helper
 const createImage = (url) =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -184,47 +183,6 @@ const createImage = (url) =>
     image.addEventListener('error', (error) => reject(error));
     image.src = url;
 });
-
-const getCroppedImg = async (imageSrc, pixelCrop, rotation = 0) => {
-  const image = await createImage(imageSrc);
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  const maxSize = Math.max(image.width, image.height);
-  const safeArea = 2 * ((maxSize / 2) * Math.sqrt(2));
-
-  canvas.width = safeArea;
-  canvas.height = safeArea;
-
-  ctx.translate(safeArea / 2, safeArea / 2);
-  ctx.rotate((rotation * Math.PI) / 180);
-  ctx.translate(-safeArea / 2, -safeArea / 2);
-  ctx.drawImage(image, safeArea / 2 - image.width / 2, safeArea / 2 - image.height / 2);
-
-  const data = ctx.getImageData(
-    safeArea / 2 - image.width / 2 + pixelCrop.x,
-    safeArea / 2 - image.height / 2 + pixelCrop.y,
-    pixelCrop.width,
-    pixelCrop.height
-  );
-
-  const finalCanvas = document.createElement('canvas');
-  const MAX_WIDTH = 1000;
-  let scale = 1;
-  if (pixelCrop.width > MAX_WIDTH) scale = MAX_WIDTH / pixelCrop.width;
-  
-  finalCanvas.width = pixelCrop.width * scale;
-  finalCanvas.height = pixelCrop.height * scale;
-  
-  const intermediateCanvas = document.createElement('canvas');
-  intermediateCanvas.width = pixelCrop.width;
-  intermediateCanvas.height = pixelCrop.height;
-  intermediateCanvas.getContext('2d').putImageData(data, 0, 0);
-
-  finalCanvas.getContext('2d').drawImage(intermediateCanvas, 0, 0, finalCanvas.width, finalCanvas.height);
-
-  return finalCanvas.toDataURL('image/jpeg', 0.85);
-};
 
 const rotateBase64Image = (base64, direction = 'cw') => {
   return new Promise((resolve, reject) => {
@@ -331,7 +289,339 @@ CRITICAL RULES:
   }
 };
 
-// Auth Component
+// --- CUSTOM STATIONARY 4-CORNER CROPPER COMPONENT ---
+function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
+  const [rotation, setRotation] = useState(0);
+  const [rotatedCanvasSrc, setRotatedCanvasSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 }); // percentages 0 to 100
+  
+  const containerRef = useRef(null);
+  const imgRef = useRef(null);
+  const isDraggingRef = useRef(false);
+  const dragHandleRef = useRef(null);
+  const startPosRef = useRef({ mouseX: 0, mouseY: 0, crop: { ...crop } });
+
+  // Generate a rotated canvas image whenever the raw image or rotation angle changes
+  useEffect(() => {
+    if (!rawImageSrc) return;
+    const img = new Image();
+    img.src = rawImageSrc;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const rad = (rotation * Math.PI) / 180;
+      const sin = Math.abs(Math.sin(rad));
+      const cos = Math.abs(Math.cos(rad));
+      
+      canvas.width = img.width * cos + img.height * sin;
+      canvas.height = img.width * sin + img.height * cos;
+
+      const ctx = canvas.getContext('2d');
+      ctx.translate(canvas.width / 2, canvas.height / 2);
+      ctx.rotate(rad);
+      ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+      setRotatedCanvasSrc(canvas.toDataURL('image/jpeg', 0.95));
+      // Reset crop box to 100% full bounds on photo
+      setCrop({ x: 0, y: 0, width: 100, height: 100 });
+    };
+  }, [rawImageSrc, rotation]);
+
+  const handleReset = () => {
+    setRotation(0);
+    setCrop({ x: 0, y: 0, width: 100, height: 100 });
+  };
+
+  const handleHandleStart = (handle, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    isDraggingRef.current = true;
+    dragHandleRef.current = handle;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    startPosRef.current = {
+      mouseX: clientX,
+      mouseY: clientY,
+      crop: { ...crop }
+    };
+  };
+
+  useEffect(() => {
+    const handleMove = (e) => {
+      if (!isDraggingRef.current || !containerRef.current) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+
+      const deltaX = ((clientX - startPosRef.current.mouseX) / rect.width) * 100;
+      const deltaY = ((clientY - startPosRef.current.mouseY) / rect.height) * 100;
+
+      const handle = dragHandleRef.current;
+      const initial = startPosRef.current.crop;
+      let newX = initial.x;
+      let newY = initial.y;
+      let newW = initial.width;
+      let newH = initial.height;
+
+      const minSize = 5; // Minimum crop dimension percentage
+
+      // Corner & Edge Calculations
+      if (handle.includes('l')) { // Left side
+        const maxDeltaX = initial.width - minSize;
+        const clampedDeltaX = Math.min(deltaX, maxDeltaX);
+        newX = Math.max(0, initial.x + clampedDeltaX);
+        newW = initial.width - (newX - initial.x);
+      } else if (handle.includes('r')) { // Right side
+        newW = Math.min(100 - initial.x, Math.max(minSize, initial.width + deltaX));
+      }
+
+      if (handle.includes('t')) { // Top side
+        const maxDeltaY = initial.height - minSize;
+        const clampedDeltaY = Math.min(deltaY, maxDeltaY);
+        newY = Math.max(0, initial.y + clampedDeltaY);
+        newH = initial.height - (newY - initial.y);
+      } else if (handle.includes('b')) { // Bottom side
+        newH = Math.min(100 - initial.y, Math.max(minSize, initial.height + deltaY));
+      }
+
+      if (handle === 'move') {
+        newX = Math.max(0, Math.min(100 - initial.width, initial.x + deltaX));
+        newY = Math.max(0, Math.min(100 - initial.height, initial.y + deltaY));
+      }
+
+      setCrop({ x: newX, y: newY, width: newW, height: newH });
+    };
+
+    const handleEnd = () => {
+      isDraggingRef.current = false;
+    };
+
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleEnd);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+    };
+  }, [crop]);
+
+  const handleFinishCrop = async () => {
+    if (!rotatedCanvasSrc || !imgRef.current) return;
+    const img = await createImage(rotatedCanvasSrc);
+    const canvas = document.createElement('canvas');
+    
+    const cropPixelX = (crop.x / 100) * img.width;
+    const cropPixelY = (crop.y / 100) * img.height;
+    const cropPixelW = (crop.width / 100) * img.width;
+    const cropPixelH = (crop.height / 100) * img.height;
+
+    const maxTargetWidth = 1000;
+    let scale = 1;
+    if (cropPixelW > maxTargetWidth) scale = maxTargetWidth / cropPixelW;
+
+    canvas.width = cropPixelW * scale;
+    canvas.height = cropPixelH * scale;
+
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(
+      img,
+      cropPixelX, cropPixelY, cropPixelW, cropPixelH,
+      0, 0, canvas.width, canvas.height
+    );
+
+    const croppedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+    onDone(croppedBase64);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-[#0c0c0e] flex flex-col font-sans select-none">
+      {/* Header Bar */}
+      <div className="bg-[#18181b] border-b border-zinc-800 px-6 py-4 flex items-center justify-between z-20 shrink-0">
+        <h2 className="text-base font-extrabold text-white tracking-wide">Crop and Resize</h2>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
+          >
+            Reset
+          </button>
+          <button
+            type="button"
+            onClick={handleFinishCrop}
+            className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-lg transition-all shadow-md active:scale-95"
+          >
+            Done
+          </button>
+        </div>
+      </div>
+
+      {/* Main Grid Canvas with Fixed Image & Draggable 4-Corner Overlay */}
+      <div className="flex-1 relative bg-[#09090b] bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] flex items-center justify-center p-6 overflow-hidden">
+        {rotatedCanvasSrc && (
+          <div 
+            ref={containerRef}
+            className="relative inline-block max-w-full max-h-full shadow-2xl overflow-hidden"
+            style={{ touchAction: 'none' }}
+          >
+            {/* Stationary Image */}
+            <img 
+              ref={imgRef}
+              src={rotatedCanvasSrc} 
+              alt="Crop target" 
+              className="max-h-[70vh] max-w-full object-contain block pointer-events-none"
+            />
+
+            {/* Dark Mask Outside Crop Rectangle */}
+            <div 
+              className="absolute inset-0 bg-black/60 pointer-events-none"
+              style={{
+                clipPath: `polygon(
+                  0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%,
+                  ${crop.x}% ${crop.y}%, 
+                  ${crop.x}% ${crop.y + crop.height}%, 
+                  ${crop.x + crop.width}% ${crop.y + crop.height}%, 
+                  ${crop.x + crop.width}% ${crop.y}%, 
+                  ${crop.x}% ${crop.y}%
+                )`
+              }}
+            />
+
+            {/* Interactive Draggable Crop Rect */}
+            <div
+              className="absolute border border-white/40 shadow-sm cursor-move"
+              style={{
+                left: `${crop.x}%`,
+                top: `${crop.y}%`,
+                width: `${crop.width}%`,
+                height: `${crop.height}%`
+              }}
+              onMouseDown={(e) => handleHandleStart('move', e)}
+              onTouchStart={(e) => handleHandleStart('move', e)}
+            >
+              {/* Rule of Thirds Grid Lines */}
+              <div className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3">
+                <div className="border-r border-b border-white/20"></div>
+                <div className="border-r border-b border-white/20"></div>
+                <div className="border-b border-white/20"></div>
+                <div className="border-r border-b border-white/20"></div>
+                <div className="border-r border-b border-white/20"></div>
+                <div className="border-b border-white/20"></div>
+                <div className="border-r border-white/20"></div>
+                <div className="border-r border-white/20"></div>
+                <div></div>
+              </div>
+
+              {/* 4 CORNER DRAGGABLE HANDLES (White Brackets) */}
+              {/* Top-Left Corner */}
+              <div
+                className="absolute -top-1.5 -left-1.5 w-6 h-6 cursor-nwse-resize z-30"
+                onMouseDown={(e) => handleHandleStart('tl', e)}
+                onTouchStart={(e) => handleHandleStart('tl', e)}
+              >
+                <div className="w-full h-full border-t-4 border-l-4 border-white shadow-md"></div>
+              </div>
+
+              {/* Top-Right Corner */}
+              <div
+                className="absolute -top-1.5 -right-1.5 w-6 h-6 cursor-nesw-resize z-30"
+                onMouseDown={(e) => handleHandleStart('tr', e)}
+                onTouchStart={(e) => handleHandleStart('tr', e)}
+              >
+                <div className="w-full h-full border-t-4 border-r-4 border-white shadow-md"></div>
+              </div>
+
+              {/* Bottom-Left Corner */}
+              <div
+                className="absolute -bottom-1.5 -left-1.5 w-6 h-6 cursor-nesw-resize z-30"
+                onMouseDown={(e) => handleHandleStart('bl', e)}
+                onTouchStart={(e) => handleHandleStart('bl', e)}
+              >
+                <div className="w-full h-full border-b-4 border-l-4 border-white shadow-md"></div>
+              </div>
+
+              {/* Bottom-Right Corner */}
+              <div
+                className="absolute -bottom-1.5 -right-1.5 w-6 h-6 cursor-nwse-resize z-30"
+                onMouseDown={(e) => handleHandleStart('br', e)}
+                onTouchStart={(e) => handleHandleStart('br', e)}
+              >
+                <div className="w-full h-full border-b-4 border-r-4 border-white shadow-md"></div>
+              </div>
+
+              {/* Edge Handles */}
+              <div 
+                className="absolute top-0 left-6 right-6 h-2 cursor-ns-resize"
+                onMouseDown={(e) => handleHandleStart('t', e)}
+                onTouchStart={(e) => handleHandleStart('t', e)}
+              />
+              <div 
+                className="absolute bottom-0 left-6 right-6 h-2 cursor-ns-resize"
+                onMouseDown={(e) => handleHandleStart('b', e)}
+                onTouchStart={(e) => handleHandleStart('b', e)}
+              />
+              <div 
+                className="absolute left-0 top-6 bottom-6 w-2 cursor-ew-resize"
+                onMouseDown={(e) => handleHandleStart('l', e)}
+                onTouchStart={(e) => handleHandleStart('l', e)}
+              />
+              <div 
+                className="absolute right-0 top-6 bottom-6 w-2 cursor-ew-resize"
+                onMouseDown={(e) => handleHandleStart('r', e)}
+                onTouchStart={(e) => handleHandleStart('r', e)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Controls (Rotation & Straightening) */}
+      <div className="bg-[#18181b] border-t border-zinc-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-20 shrink-0">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setRotation(r => (r - 90 + 360) % 360)}
+            className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5" /> -90°
+          </button>
+          <button
+            type="button"
+            onClick={() => setRotation(r => (r + 90) % 360)}
+            className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
+          >
+            <RotateCw className="w-3.5 h-3.5" /> +90°
+          </button>
+        </div>
+
+        <div className="flex-1 flex items-center gap-3 w-full sm:max-w-md">
+          <span className="text-xs font-semibold text-zinc-400 shrink-0">Angle:</span>
+          <input
+            type="range"
+            min={0}
+            max={360}
+            value={rotation}
+            onChange={(e) => setRotation(Number(e.target.value))}
+            className="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer"
+          />
+          <span className="text-xs font-mono font-extrabold text-amber-400 shrink-0 w-10 text-right">{Math.round(rotation)}°</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Auth View
 function AuthView({ onLoginSuccess }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -990,13 +1280,9 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
   const [status, setStatus] = useState('idle');
   const [errorText, setErrorText] = useState('');
 
-  // Cropper & Free Rotation States
+  // Stationary Corner Cropper States
   const [rawImageSrc, setRawImageSrc] = useState(null);
   const [isCropping, setIsCropping] = useState(false);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
 
   const [subjectKey, setSubjectKey] = useState('biology');
   const [topic, setTopic] = useState(HKDSE_SYLLABUS['biology'].topics[0]);
@@ -1061,9 +1347,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     reader.onload = () => {
       setRawImageSrc(reader.result);
       setIsCropping(true);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setRotation(0);
       setErrorText('');
     };
     reader.readAsDataURL(file);
@@ -1074,26 +1357,14 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     if (attachedImage || rawImageSrc) {
       setRawImageSrc(attachedImage || rawImageSrc);
       setIsCropping(true);
-      setCrop({ x: 0, y: 0 });
-      setZoom(1);
-      setRotation(0);
     }
   };
 
-  const handleCropComplete = useCallback((croppedArea, croppedAreaPixels) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
-
-  const saveCrop = async () => {
-    try {
-      const croppedImageBase64 = await getCroppedImg(rawImageSrc, croppedAreaPixels, rotation);
-      setAttachedImage(croppedImageBase64);
-      setImagePreview(croppedImageBase64);
-      setIncludeImage(true);
-      setIsCropping(false);
-    } catch (e) {
-      setErrorText('Failed to process and crop image.');
-    }
+  const handleCropDone = (croppedBase64) => {
+    setAttachedImage(croppedBase64);
+    setImagePreview(croppedBase64);
+    setIncludeImage(true);
+    setIsCropping(false);
   };
 
   const handleCancelCrop = () => {
@@ -1101,12 +1372,6 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     if (!attachedImage && fileInputRef.current) {
       fileInputRef.current.value = ''; 
     }
-  };
-
-  const handleResetCrop = () => {
-    setCrop({ x: 0, y: 0 });
-    setZoom(1);
-    setRotation(0);
   };
 
   const handleRotatePreview = async (direction) => {
@@ -1231,105 +1496,13 @@ function AddQuestionView({ user, userApiKey, setUserApiKey, editData, onSaved, o
     }
   };
 
-  // Full-featured Cropper UI matching screenshot (4 corner handles + top bar + grid dark canvas)
   if (isCropping) {
     return (
-      <div className="fixed inset-0 z-50 bg-[#121214] flex flex-col font-sans select-none">
-        <style>{`
-          .customCropperArea {
-            box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.65) !important;
-            border: 1px solid rgba(255, 255, 255, 0.3) !important;
-            position: relative;
-            background: 
-              linear-gradient(to right, #ffffff 22px, transparent 22px) top left / 100% 5px no-repeat,
-              linear-gradient(to bottom, #ffffff 22px, transparent 22px) top left / 5px 100% no-repeat,
-              linear-gradient(to left, #ffffff 22px, transparent 22px) top right / 100% 5px no-repeat,
-              linear-gradient(to bottom, #ffffff 22px, transparent 22px) top right / 5px 100% no-repeat,
-              linear-gradient(to right, #ffffff 22px, transparent 22px) bottom left / 100% 5px no-repeat,
-              linear-gradient(to top, #ffffff 22px, transparent 22px) bottom left / 5px 100% no-repeat,
-              linear-gradient(to left, #ffffff 22px, transparent 22px) bottom right / 100% 5px no-repeat,
-              linear-gradient(to top, #ffffff 22px, transparent 22px) bottom right / 5px 100% no-repeat !important;
-          }
-        `}</style>
-
-        {/* Top Header Bar */}
-        <div className="bg-[#18181b] border-b border-zinc-800 px-6 py-4 flex items-center justify-between z-20 shrink-0">
-          <h2 className="text-base font-extrabold text-white tracking-wide">Crop and Resize</h2>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={handleCancelCrop}
-              className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleResetCrop}
-              className="px-4 py-2 text-xs font-semibold text-zinc-300 hover:text-white transition-colors"
-            >
-              Reset
-            </button>
-            <button
-              type="button"
-              onClick={saveCrop}
-              className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-extrabold rounded-lg transition-all shadow-md active:scale-95"
-            >
-              Done
-            </button>
-          </div>
-        </div>
-
-        {/* Dark Canvas with Background Grid */}
-        <div className="flex-1 relative bg-[#09090b] bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
-          <Cropper
-            image={rawImageSrc}
-            crop={crop}
-            zoom={zoom}
-            rotation={rotation}
-            aspect={undefined}
-            showGrid={true}
-            classes={{ cropAreaClassName: 'customCropperArea' }}
-            onCropChange={setCrop}
-            onRotationChange={setRotation}
-            onCropComplete={handleCropComplete}
-            onZoomChange={setZoom}
-          />
-        </div>
-
-        {/* Rotation & Angle Slider Controls */}
-        <div className="bg-[#18181b] border-t border-zinc-800 p-4 flex flex-col sm:flex-row items-center justify-between gap-4 z-20 shrink-0">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setRotation(r => (r - 90 + 360) % 360)}
-              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" /> -90°
-            </button>
-            <button
-              type="button"
-              onClick={() => setRotation(r => (r + 90) % 360)}
-              className="px-3.5 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors"
-            >
-              <RotateCw className="w-3.5 h-3.5" /> +90°
-            </button>
-          </div>
-
-          <div className="flex-1 flex items-center gap-3 w-full sm:max-w-md">
-            <span className="text-xs font-semibold text-zinc-400 shrink-0">Angle:</span>
-            <input
-              type="range"
-              min={0}
-              max={360}
-              value={rotation}
-              onChange={(e) => setRotation(Number(e.target.value))}
-              className="w-full accent-amber-500 h-1.5 bg-zinc-800 rounded-lg cursor-pointer"
-            />
-            <span className="text-xs font-mono font-extrabold text-amber-400 shrink-0 w-10 text-right">{Math.round(rotation)}°</span>
-          </div>
-        </div>
-      </div>
+      <CustomCornerCropper
+        rawImageSrc={rawImageSrc}
+        onDone={handleCropDone}
+        onCancel={handleCancelCrop}
+      />
     );
   }
 
