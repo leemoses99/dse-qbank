@@ -451,7 +451,7 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
     const cropPixelW = (crop.width / 100) * img.width;
     const cropPixelH = (crop.height / 100) * img.height;
 
-    const maxTargetWidth = 1000;
+    const maxTargetWidth = 500;
     let scale = 1;
     if (cropPixelW > maxTargetWidth) scale = maxTargetWidth / cropPixelW;
 
@@ -465,7 +465,7 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
       0, 0, canvas.width, canvas.height
     );
 
-    const croppedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+    const croppedBase64 = canvas.toDataURL('image/jpeg', 0.30);
     onDone(croppedBase64);
   };
 
