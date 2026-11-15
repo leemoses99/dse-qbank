@@ -443,7 +443,7 @@ function StarRating({ value = 3, onChange, readonly = false, size = "md" }) {
 }
 
 // --- CUSTOM STATIONARY 4-CORNER CROPPER COMPONENT ---
-function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
+function CustomCornerCropper({ rawImageSrc, title = "Crop and Resize", onDone, onCancel }) {
   const [rotation, setRotation] = useState(0);
   const [rotatedCanvasSrc, setRotatedCanvasSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0, width: 100, height: 100 });
@@ -589,7 +589,7 @@ function CustomCornerCropper({ rawImageSrc, onDone, onCancel }) {
   return (
     <div className="fixed inset-0 z-50 bg-[#0c0c0e] flex flex-col font-sans select-none">
       <div className="bg-[#18181b] border-b border-zinc-800 px-6 py-4 flex items-center justify-between z-20 shrink-0">
-        <h2 className="text-base font-extrabold text-white tracking-wide">Crop and Resize</h2>
+        <h2 className="text-base font-extrabold text-white tracking-wide">{title}</h2>
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -1174,20 +1174,32 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
                 </button>
              ) : (
                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-100 pt-4">
-                  {q.answerText && (
-                    <div className="p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium shadow-sm">
-                      <span className="font-extrabold font-sans block mb-2 text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  {(q.answerText || q.answerImage) && (
+                    <div className="p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium shadow-sm space-y-3">
+                      <span className="font-extrabold font-sans block text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                          <CheckCircle2 className="w-4 h-4" /> Marking Scheme / Answer
                       </span>
-                      {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                      {q.answerText && (
+                        <div>{typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}</div>
+                      )}
+                      {q.answerImage && (
+                        <div className="rounded-xl border border-emerald-200/80 bg-white p-2 flex justify-center">
+                          <img src={q.answerImage} alt="Solution Diagram" className="max-h-64 object-contain rounded-lg" />
+                        </div>
+                      )}
                     </div>
                   )}
-                  {q.remarks && (
-                    <div className="p-5 bg-amber-50/80 border border-amber-200 rounded-2xl text-sm text-amber-900 whitespace-pre-wrap font-medium shadow-sm">
-                      <span className="font-extrabold font-sans block mb-2 text-amber-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  {(q.remarks || q.remarksImage) && (
+                    <div className="p-5 bg-amber-50/80 border border-amber-200 rounded-2xl text-sm text-amber-900 whitespace-pre-wrap font-medium shadow-sm space-y-3">
+                      <span className="font-extrabold font-sans block text-amber-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                          <Info className="w-4 h-4" /> Remarks / Notes
                       </span>
-                      {q.remarks}
+                      {q.remarks && <div>{q.remarks}</div>}
+                      {q.remarksImage && (
+                        <div className="rounded-xl border border-amber-200/80 bg-white p-2 flex justify-center">
+                          <img src={q.remarksImage} alt="Remarks Diagram" className="max-h-64 object-contain rounded-lg" />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1391,7 +1403,7 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
                 )}
               </div>
 
-              {(q.answerText || q.remarks) && (
+              {(q.answerText || q.answerImage || q.remarks || q.remarksImage) && (
                 <div className="px-5 pb-5 mt-auto">
                   <div className="pt-4 border-t border-slate-100">
                     <button
@@ -1407,10 +1419,28 @@ function CommunityLibraryView({ db, appId, user, onSaveToLibrary }) {
 
                     {visibleAnswers[q.id] && (
                       <div className="mt-3 space-y-3">
-                        {q.answerText && (
-                          <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium">
-                            <span className="font-extrabold block mb-2 text-emerald-800 text-xs uppercase tracking-wider">Answer</span>
-                            {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                        {(q.answerText || q.answerImage) && (
+                          <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium space-y-2.5">
+                            <span className="font-extrabold block text-emerald-800 text-xs uppercase tracking-wider">Answer</span>
+                            {q.answerText && (
+                              <div>{typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}</div>
+                            )}
+                            {q.answerImage && (
+                              <div className="rounded-xl border border-emerald-200/80 bg-white p-2 flex justify-center">
+                                <img src={q.answerImage} alt="Solution Diagram" className="max-h-56 object-contain rounded-lg" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {(q.remarks || q.remarksImage) && (
+                          <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-2xl text-sm text-indigo-900 whitespace-pre-wrap font-medium space-y-2.5">
+                            <span className="font-extrabold block text-indigo-800 text-xs uppercase tracking-wider">Remarks / Notes</span>
+                            {q.remarks && <div>{q.remarks}</div>}
+                            {q.remarksImage && (
+                              <div className="rounded-xl border border-indigo-200/80 bg-white p-2 flex justify-center">
+                                <img src={q.remarksImage} alt="Remarks Diagram" className="max-h-56 object-contain rounded-lg" />
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -1873,10 +1903,10 @@ function LibraryView({ questions, user, currentView, onEdit }) {
     setVisibleAnswers(prev => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const handleRotateView = async (id, base64, direction) => {
+  const handleRotateView = async (storageKey, base64, direction) => {
     try {
-      const rotated = await rotateBase64Image(localImages[id] || base64, direction);
-      setLocalImages(prev => ({ ...prev, [id]: rotated }));
+      const rotated = await rotateBase64Image(localImages[storageKey] || base64, direction);
+      setLocalImages(prev => ({ ...prev, [storageKey]: rotated }));
     } catch (err) {
       console.error("Rotate error", err);
     }
@@ -2038,20 +2068,40 @@ function LibraryView({ questions, user, currentView, onEdit }) {
                 </button>
              ) : (
                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2 duration-300 border-t border-slate-100 pt-4">
-                  {q.answerText && (
-                    <div className="p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium shadow-sm">
-                      <span className="font-extrabold font-sans block mb-2 text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  {(q.answerText || q.answerImage) && (
+                    <div className="p-5 bg-emerald-50/80 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium shadow-sm space-y-3">
+                      <span className="font-extrabold font-sans block text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                          <CheckCircle2 className="w-4 h-4" /> Marking Scheme / Answer
                       </span>
-                      {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                      {q.answerText && (
+                        <div>{typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}</div>
+                      )}
+                      {q.answerImage && (
+                        <div className="rounded-xl border border-emerald-200/80 bg-white p-2 flex justify-center">
+                          <img 
+                            src={localImages[`${q.id}_answer`] || q.answerImage} 
+                            alt="Solution Diagram" 
+                            className="max-h-64 object-contain rounded-lg" 
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
-                  {q.remarks && (
-                    <div className="p-5 bg-amber-50/80 border border-amber-200 rounded-2xl text-sm text-amber-900 whitespace-pre-wrap font-medium shadow-sm">
-                      <span className="font-extrabold font-sans block mb-2 text-amber-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  {(q.remarks || q.remarksImage) && (
+                    <div className="p-5 bg-amber-50/80 border border-amber-200 rounded-2xl text-sm text-amber-900 whitespace-pre-wrap font-medium shadow-sm space-y-3">
+                      <span className="font-extrabold font-sans block text-amber-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                          <Info className="w-4 h-4" /> Remarks / Notes
                       </span>
-                      {q.remarks}
+                      {q.remarks && <div>{q.remarks}</div>}
+                      {q.remarksImage && (
+                        <div className="rounded-xl border border-amber-200/80 bg-white p-2 flex justify-center">
+                          <img 
+                            src={localImages[`${q.id}_remarks`] || q.remarksImage} 
+                            alt="Remarks Diagram" 
+                            className="max-h-64 object-contain rounded-lg" 
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -2301,7 +2351,7 @@ function LibraryView({ questions, user, currentView, onEdit }) {
                 )}
               </div>
 
-              {(q.answerText || q.remarks) && (
+              {(q.answerText || q.answerImage || q.remarks || q.remarksImage) && (
                 <div className="px-5 pb-5 mt-auto">
                   <div className="pt-4 border-t border-slate-100">
                     <button
@@ -2317,20 +2367,72 @@ function LibraryView({ questions, user, currentView, onEdit }) {
 
                     {visibleAnswers[q.id] && (
                       <div className="mt-3 space-y-3">
-                        {q.answerText && (
-                          <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium">
-                            <span className="font-extrabold font-sans block mb-2 text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        {(q.answerText || q.answerImage) && (
+                          <div className="p-4 bg-emerald-50/50 border border-emerald-200 rounded-2xl text-sm text-emerald-900 whitespace-pre-wrap font-medium space-y-2.5">
+                            <span className="font-extrabold font-sans block text-emerald-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                                <CheckCircle2 className="w-4 h-4" /> Marking Scheme / Answer
                             </span>
-                            {typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}
+                            {q.answerText && (
+                              <div>{typeof q.answerText === 'object' ? JSON.stringify(q.answerText, null, 2) : String(q.answerText)}</div>
+                            )}
+                            {q.answerImage && (
+                              <div className="relative rounded-xl border border-emerald-200/80 overflow-hidden bg-white flex flex-col items-center justify-center p-2 group/ansimg">
+                                <img 
+                                  src={localImages[`${q.id}_answer`] || q.answerImage} 
+                                  alt="Solution Diagram" 
+                                  className="max-h-56 object-contain rounded-lg transition-all" 
+                                />
+                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/ansimg:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => handleRotateView(`${q.id}_answer`, q.answerImage, 'ccw')}
+                                    className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-emerald-600 transition-colors"
+                                    title="Rotate Left 90°"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleRotateView(`${q.id}_answer`, q.answerImage, 'cw')}
+                                    className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-emerald-600 transition-colors"
+                                    title="Rotate Right 90°"
+                                  >
+                                    <RotateCw className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
-                        {q.remarks && (
-                          <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-2xl text-sm text-indigo-900 whitespace-pre-wrap font-medium">
-                            <span className="font-extrabold font-sans block mb-2 text-indigo-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                        {(q.remarks || q.remarksImage) && (
+                          <div className="p-4 bg-indigo-50/50 border border-indigo-200 rounded-2xl text-sm text-indigo-900 whitespace-pre-wrap font-medium space-y-2.5">
+                            <span className="font-extrabold font-sans block text-indigo-800 text-xs uppercase tracking-wider flex items-center gap-1.5">
                                <Info className="w-4 h-4" /> Remarks / Notes
                             </span>
-                            {q.remarks}
+                            {q.remarks && <div>{q.remarks}</div>}
+                            {q.remarksImage && (
+                              <div className="relative rounded-xl border border-indigo-200/80 overflow-hidden bg-white flex flex-col items-center justify-center p-2 group/remimg">
+                                <img 
+                                  src={localImages[`${q.id}_remarks`] || q.remarksImage} 
+                                  alt="Remarks Diagram" 
+                                  className="max-h-56 object-contain rounded-lg transition-all" 
+                                />
+                                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover/remimg:opacity-100 transition-opacity">
+                                  <button
+                                    onClick={() => handleRotateView(`${q.id}_remarks`, q.remarksImage, 'ccw')}
+                                    className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+                                    title="Rotate Left 90°"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleRotateView(`${q.id}_remarks`, q.remarksImage, 'cw')}
+                                    className="p-1.5 bg-white/90 backdrop-blur shadow-sm rounded-lg text-slate-500 hover:text-indigo-600 transition-colors"
+                                    title="Rotate Right 90°"
+                                  >
+                                    <RotateCw className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
@@ -2349,6 +2451,8 @@ function LibraryView({ questions, user, currentView, onEdit }) {
 // Add/Edit Question View Component
 function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, onCancel }) {
   const fileInputRef = useRef(null);
+  const answerFileInputRef = useRef(null);
+  const remarksFileInputRef = useRef(null);
 
   const [ocrEngine, setOcrEngine] = useState('ai');
   const [rateSource, setRateSource] = useState('self');
@@ -2359,8 +2463,23 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
   const [status, setStatus] = useState('idle');
   const [errorText, setErrorText] = useState('');
 
+  // Shared Cropper Canvas State ('question' | 'answer' | 'remarks' | null)
+  const [croppingTarget, setCroppingTarget] = useState(null);
+  const [cropperInitialSrc, setCropperInitialSrc] = useState(null);
+  const [activePasteTarget, setActivePasteTarget] = useState('question');
+
+  // Question Image State
   const [rawImageSrc, setRawImageSrc] = useState(null);
-  const [isCropping, setIsCropping] = useState(false);
+  const [attachedImage, setAttachedImage] = useState(null);
+  const [includeImage, setIncludeImage] = useState(true);
+
+  // Solution (Answer) Image State
+  const [rawAnswerImageSrc, setRawAnswerImageSrc] = useState(null);
+  const [answerImage, setAnswerImage] = useState(null);
+
+  // Remarks Image State
+  const [rawRemarksImageSrc, setRawRemarksImageSrc] = useState(null);
+  const [remarksImage, setRemarksImage] = useState(null);
 
   const [subjectKey, setSubjectKey] = useState('biology');
   const [topic, setTopic] = useState(HKDSE_SYLLABUS['biology'].topics[0]);
@@ -2370,34 +2489,41 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
   const [answerText, setAnswerText] = useState('');
   const [options, setOptions] = useState({ A: '', B: '', C: '', D: '' });
   const [remarks, setRemarks] = useState('');
-  const [attachedImage, setAttachedImage] = useState(null);
-  const [includeImage, setIncludeImage] = useState(true);
   const [isSharedPublicly, setIsSharedPublicly] = useState(defaultPublicShare);
 
-  const processImageFile = useCallback((file) => {
+  const processImageFileForTarget = useCallback((file, target = 'question') => {
     if (!file || !file.type.startsWith('image/')) {
       setErrorText('Please paste or upload a valid image file.');
       return;
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setRawImageSrc(reader.result);
-      setIsCropping(true);
+      const dataUrl = reader.result;
+      if (target === 'question') {
+        setRawImageSrc(dataUrl);
+        setImageFile(file);
+      } else if (target === 'answer') {
+        setRawAnswerImageSrc(dataUrl);
+      } else if (target === 'remarks') {
+        setRawRemarksImageSrc(dataUrl);
+      }
+      setCropperInitialSrc(dataUrl);
+      setCroppingTarget(target);
       setErrorText('');
     };
     reader.readAsDataURL(file);
-    setImageFile(file);
   }, []);
 
   useEffect(() => {
     const handlePaste = (e) => {
+      if (croppingTarget) return;
       const items = e.clipboardData?.items;
       if (!items) return;
       for (let i = 0; i < items.length; i++) {
         if (items[i].type.indexOf('image') !== -1) {
           const blob = items[i].getAsFile();
           if (blob) {
-            processImageFile(blob);
+            processImageFileForTarget(blob, activePasteTarget);
             break;
           }
         }
@@ -2405,7 +2531,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
     };
     window.addEventListener('paste', handlePaste);
     return () => window.removeEventListener('paste', handlePaste);
-  }, [processImageFile]);
+  }, [processImageFileForTarget, activePasteTarget, croppingTarget]);
 
   const handleSubjectChange = (e) => {
     const newSubject = e.target.value;
@@ -2436,6 +2562,14 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
         setRawImageSrc(editData.attachedImage);
         setIncludeImage(true);
       }
+      if (editData.answerImage) {
+        setAnswerImage(editData.answerImage);
+        setRawAnswerImageSrc(editData.answerImage);
+      }
+      if (editData.remarksImage) {
+        setRemarksImage(editData.remarksImage);
+        setRawRemarksImageSrc(editData.remarksImage);
+      }
     } else {
       setIsSharedPublicly(defaultPublicShare);
     }
@@ -2450,39 +2584,64 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
     }
   };
 
-  const handleFilePicked = (e) => {
+  const handleFilePicked = (e, target = 'question') => {
     const file = e.target.files?.[0];
-    if (file) processImageFile(file);
+    if (file) processImageFileForTarget(file, target);
   };
 
-  const openRecropModal = () => {
-    if (attachedImage || rawImageSrc) {
-      setRawImageSrc(attachedImage || rawImageSrc);
-      setIsCropping(true);
+  const openRecropModal = (target = 'question') => {
+    if (target === 'question' && (attachedImage || rawImageSrc)) {
+      setCropperInitialSrc(attachedImage || rawImageSrc);
+      setCroppingTarget('question');
+    } else if (target === 'answer' && (answerImage || rawAnswerImageSrc)) {
+      setCropperInitialSrc(answerImage || rawAnswerImageSrc);
+      setCroppingTarget('answer');
+    } else if (target === 'remarks' && (remarksImage || rawRemarksImageSrc)) {
+      setCropperInitialSrc(remarksImage || rawRemarksImageSrc);
+      setCroppingTarget('remarks');
     }
   };
 
   const handleCropDone = (croppedBase64) => {
-    setAttachedImage(croppedBase64);
-    setImagePreview(croppedBase64);
-    setIncludeImage(true);
-    setIsCropping(false);
+    if (croppingTarget === 'question') {
+      setAttachedImage(croppedBase64);
+      setImagePreview(croppedBase64);
+      setIncludeImage(true);
+    } else if (croppingTarget === 'answer') {
+      setAnswerImage(croppedBase64);
+    } else if (croppingTarget === 'remarks') {
+      setRemarksImage(croppedBase64);
+    }
+    setCroppingTarget(null);
   };
 
   const handleCancelCrop = () => {
-    setIsCropping(false);
-    if (!attachedImage && fileInputRef.current) {
-      fileInputRef.current.value = ''; 
+    if (croppingTarget === 'question' && !attachedImage && fileInputRef.current) {
+      fileInputRef.current.value = '';
+    } else if (croppingTarget === 'answer' && !answerImage && answerFileInputRef.current) {
+      answerFileInputRef.current.value = '';
+    } else if (croppingTarget === 'remarks' && !remarksImage && remarksFileInputRef.current) {
+      remarksFileInputRef.current.value = '';
     }
+    setCroppingTarget(null);
   };
 
-  const handleRotatePreview = async (direction) => {
-    if (!imagePreview) return;
+  const handleRotatePreview = async (direction, target = 'question') => {
     try {
-      const rotated = await rotateBase64Image(imagePreview, direction);
-      setImagePreview(rotated);
-      setAttachedImage(rotated);
-      setRawImageSrc(rotated);
+      if (target === 'question' && imagePreview) {
+        const rotated = await rotateBase64Image(imagePreview, direction);
+        setImagePreview(rotated);
+        setAttachedImage(rotated);
+        setRawImageSrc(rotated);
+      } else if (target === 'answer' && answerImage) {
+        const rotated = await rotateBase64Image(answerImage, direction);
+        setAnswerImage(rotated);
+        setRawAnswerImageSrc(rotated);
+      } else if (target === 'remarks' && remarksImage) {
+        const rotated = await rotateBase64Image(remarksImage, direction);
+        setRemarksImage(rotated);
+        setRawRemarksImageSrc(rotated);
+      }
     } catch (err) {
       setErrorText('Failed to rotate image.');
     }
@@ -2585,8 +2744,10 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
         source: source.trim(),
         questionText: questionText.trim(),
         answerText: answerText.trim(),
+        answerImage: answerImage || null,
         options: questionType === 'MC' ? options : null,
         remarks: remarks.trim(),
+        remarksImage: remarksImage || null,
         difficulty: Number(difficulty) || 3,
         attachedImage: includeImage ? attachedImage : null,
         status: editData ? editData.status || 'unmarked' : 'unmarked',
@@ -2611,10 +2772,16 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
     }
   };
 
-  if (isCropping) {
+  if (croppingTarget) {
+    const cropTitles = {
+      question: 'Crop and Resize Question Image',
+      answer: 'Crop and Resize Solution Image',
+      remarks: 'Crop and Resize Remarks Image'
+    };
     return (
       <CustomCornerCropper
-        rawImageSrc={rawImageSrc}
+        rawImageSrc={cropperInitialSrc}
+        title={cropTitles[croppingTarget] || 'Crop and Resize'}
         onDone={handleCropDone}
         onCancel={handleCancelCrop}
       />
@@ -2668,8 +2835,18 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
           </div>
         </div>
 
-        <div className="space-y-4">
-          <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">2. Question Capture</label>
+        <div 
+          className="space-y-4"
+          onClick={() => setActivePasteTarget('question')}
+        >
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-extrabold text-slate-500 uppercase tracking-wider block">2. Question Capture</label>
+            {activePasteTarget === 'question' && (
+              <span className="text-[10px] font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                Ctrl+V Active Target
+              </span>
+            )}
+          </div>
           <div className="flex gap-4 items-center bg-white p-1.5 rounded-xl border border-slate-200 shadow-sm w-fit">
             <button
               type="button"
@@ -2689,7 +2866,10 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
 
           {!imagePreview ? (
             <div
-              onClick={() => fileInputRef.current?.click()}
+              onClick={() => {
+                setActivePasteTarget('question');
+                fileInputRef.current?.click();
+              }}
               className="border-2 border-dashed border-indigo-300 bg-indigo-50/50 hover:bg-indigo-50 rounded-3xl p-8 text-center cursor-pointer transition-all flex flex-col items-center group relative"
             >
               <div className="p-4 bg-white rounded-2xl shadow-sm mb-3 group-hover:scale-110 transition-transform">
@@ -2711,7 +2891,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
                 <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur p-1 rounded-xl border border-slate-700">
                   <button
                     type="button"
-                    onClick={() => handleRotatePreview('ccw')}
+                    onClick={() => handleRotatePreview('ccw', 'question')}
                     className="p-2 text-white hover:text-indigo-400 transition-colors"
                     title="Rotate Left 90°"
                   >
@@ -2719,7 +2899,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleRotatePreview('cw')}
+                    onClick={() => handleRotatePreview('cw', 'question')}
                     className="p-2 text-white hover:text-indigo-400 transition-colors"
                     title="Rotate Right 90°"
                   >
@@ -2734,6 +2914,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
                       setAttachedImage(null);
                       setRawImageSrc(null);
                       setIncludeImage(true);
+                      if (fileInputRef.current) fileInputRef.current.value = '';
                     }}
                     className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
                     title="Remove Image"
@@ -2745,7 +2926,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
 
               <button
                 type="button"
-                onClick={openRecropModal}
+                onClick={() => openRecropModal('question')}
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-slate-200 transition-all"
               >
                 <Crop className="w-4 h-4 text-indigo-600" /> Recrop & Straighten Image
@@ -2765,7 +2946,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
           <input
             type="file"
             ref={fileInputRef}
-            onChange={handleFilePicked}
+            onChange={(e) => handleFilePicked(e, 'question')}
             accept="image/*"
             className="hidden"
           />
@@ -2903,26 +3084,195 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
               </div>
             )}
 
-            <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Marking Scheme / Answer</label>
+            {/* Marking Scheme / Answer Section with Image Upload + Crop/Rotate Canvas */}
+            <div 
+              className="space-y-3"
+              onClick={() => setActivePasteTarget('answer')}
+            >
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Marking Scheme / Answer</label>
+                {activePasteTarget === 'answer' && (
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    Ctrl+V Active Target
+                  </span>
+                )}
+              </div>
               <MathSymbolToolbar onInsert={(sym) => setAnswerText(prev => (prev || '') + sym)} />
               <textarea
                 rows={3}
+                placeholder="Type answer or marking scheme steps, or attach a solution image below..."
                 value={answerText}
                 onChange={(e) => setAnswerText(e.target.value)}
+                onFocus={() => setActivePasteTarget('answer')}
                 className="w-full bg-emerald-50/50 border border-emerald-200 text-emerald-900 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all resize-y"
+              />
+
+              {!answerImage ? (
+                <div
+                  onClick={() => {
+                    setActivePasteTarget('answer');
+                    answerFileInputRef.current?.click();
+                  }}
+                  className="border-2 border-dashed border-emerald-300 bg-emerald-50/40 hover:bg-emerald-50/80 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col sm:flex-row items-center justify-center gap-3 group"
+                >
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm group-hover:scale-105 transition-transform">
+                    <Camera className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-extrabold text-emerald-900 text-xs">Upload / Snap Solution Image (Crop & Rotate)</h4>
+                    <p className="text-[11px] text-emerald-700/80 font-medium">Click to select photo or click here & press <strong>Ctrl+V</strong> to paste screenshot.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-56 border border-emerald-200 shadow-inner flex items-center justify-center">
+                    <img src={answerImage} alt="Solution Attachment" className="max-w-full max-h-full object-contain" />
+                    
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur p-1 rounded-xl border border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => handleRotatePreview('ccw', 'answer')}
+                        className="p-2 text-white hover:text-emerald-400 transition-colors"
+                        title="Rotate Left 90°"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRotatePreview('cw', 'answer')}
+                        className="p-2 text-white hover:text-emerald-400 transition-colors"
+                        title="Rotate Right 90°"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-slate-700 mx-0.5"></div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAnswerImage(null);
+                          setRawAnswerImageSrc(null);
+                          if (answerFileInputRef.current) answerFileInputRef.current.value = '';
+                        }}
+                        className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                        title="Remove Solution Image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openRecropModal('answer')}
+                    className="w-full py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-emerald-200 transition-all"
+                  >
+                    <Crop className="w-4 h-4 text-emerald-600" /> Recrop & Straighten Solution Image
+                  </button>
+                </div>
+              )}
+
+              <input
+                type="file"
+                ref={answerFileInputRef}
+                onChange={(e) => handleFilePicked(e, 'answer')}
+                accept="image/*"
+                className="hidden"
               />
             </div>
 
-            <div>
-              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Remarks / Notes</label>
+            {/* Remarks / Notes Section with Image Upload + Crop/Rotate Canvas */}
+            <div 
+              className="space-y-3"
+              onClick={() => setActivePasteTarget('remarks')}
+            >
+              <div className="flex items-center justify-between">
+                <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Remarks / Notes</label>
+                {activePasteTarget === 'remarks' && (
+                  <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                    Ctrl+V Active Target
+                  </span>
+                )}
+              </div>
               <MathSymbolToolbar onInsert={(sym) => setRemarks(prev => (prev || '') + sym)} />
               <textarea
                 rows={2}
                 placeholder="e.g. Remember to check units, use formula X..."
                 value={remarks}
                 onChange={(e) => setRemarks(e.target.value)}
+                onFocus={() => setActivePasteTarget('remarks')}
                 className="w-full bg-amber-50/50 border border-amber-200 text-amber-900 text-sm font-medium rounded-xl p-4 outline-none focus:ring-2 focus:ring-amber-500 focus:bg-white transition-all resize-y"
+              />
+
+              {!remarksImage ? (
+                <div
+                  onClick={() => {
+                    setActivePasteTarget('remarks');
+                    remarksFileInputRef.current?.click();
+                  }}
+                  className="border-2 border-dashed border-amber-300 bg-amber-50/40 hover:bg-amber-50/80 rounded-2xl p-4 text-center cursor-pointer transition-all flex flex-col sm:flex-row items-center justify-center gap-3 group"
+                >
+                  <div className="p-2.5 bg-white rounded-xl shadow-sm group-hover:scale-105 transition-transform">
+                    <Camera className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div className="text-left">
+                    <h4 className="font-extrabold text-amber-900 text-xs">Upload / Snap Remarks Image (Crop & Rotate)</h4>
+                    <p className="text-[11px] text-amber-700/80 font-medium">Click to select photo or click here & press <strong>Ctrl+V</strong> to paste screenshot.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5">
+                  <div className="relative rounded-2xl overflow-hidden bg-slate-900 h-56 border border-amber-200 shadow-inner flex items-center justify-center">
+                    <img src={remarksImage} alt="Remarks Attachment" className="max-w-full max-h-full object-contain" />
+                    
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5 bg-slate-900/80 backdrop-blur p-1 rounded-xl border border-slate-700">
+                      <button
+                        type="button"
+                        onClick={() => handleRotatePreview('ccw', 'remarks')}
+                        className="p-2 text-white hover:text-amber-400 transition-colors"
+                        title="Rotate Left 90°"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRotatePreview('cw', 'remarks')}
+                        className="p-2 text-white hover:text-amber-400 transition-colors"
+                        title="Rotate Right 90°"
+                      >
+                        <RotateCw className="w-4 h-4" />
+                      </button>
+                      <div className="w-px h-4 bg-slate-700 mx-0.5"></div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRemarksImage(null);
+                          setRawRemarksImageSrc(null);
+                          if (remarksFileInputRef.current) remarksFileInputRef.current.value = '';
+                        }}
+                        className="p-2 text-slate-400 hover:text-rose-400 transition-colors"
+                        title="Remove Remarks Image"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openRecropModal('remarks')}
+                    className="w-full py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold rounded-xl text-xs flex items-center justify-center gap-2 border border-amber-200 transition-all"
+                  >
+                    <Crop className="w-4 h-4 text-amber-600" /> Recrop & Straighten Remarks Image
+                  </button>
+                </div>
+              )}
+
+              <input
+                type="file"
+                ref={remarksFileInputRef}
+                onChange={(e) => handleFilePicked(e, 'remarks')}
+                accept="image/*"
+                className="hidden"
               />
             </div>
 
@@ -2936,7 +3286,7 @@ function AddQuestionView({ user, editData, defaultPublicShare = false, onSaved, 
                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 cursor-pointer"
                  />
                  <label htmlFor="includeImageCheck" className="text-sm font-bold text-indigo-900 flex-1 cursor-pointer select-none">
-                   Save original image to database (Recommended for Diagrams)
+                   Save original question image to database (Recommended for Diagrams)
                  </label>
                  <ImageIcon className="w-5 h-5 text-indigo-400" />
               </div>
